@@ -1,2 +1,2 @@
-# teamnexus
-CSCE 4901.003 Capstone Computer Science Project for UNT
+# CodeTime README
+CSCE 4901.003 Capstone Computer Science Project at UNT
