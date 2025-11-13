@@ -1,33 +1,49 @@
 {
   "name": "codetime",
   "displayName": "CodeTime",
-  "description": "",
+  "publisher": "codetime-dev",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.105.0"
+    "vscode": "^1.60.0"
   },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [],
+  "categories": ["Other"],
   "main": "./extension.js",
+
+  "activationEvents": [
+    "onCommand:codetime.test",
+    "onCommand:codetime.openTimeline",
+    "onView:codetime.timelineView"
+  ],
+
   "contributes": {
-    "commands": [{
-      "command": "codetime.helloWorld",
-      "title": "Hello World"
-    }]
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.105.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "eslint": "^9.36.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codetime",
+          "title": "CodeTime",
+          "icon": "media/codetime.png"
+        }
+      ]
+    },
+
+    "views": {
+      "codetime": [
+        {
+          "id": "codetime.timelineView",
+          "name": "Timeline"
+        }
+      ]
+    },
+
+    "commands": [
+      {
+        "command": "codetime.test",
+        "title": "CodeTime: Test Activation"
+      },
+      {
+        "command": "codetime.openTimeline",
+        "title": "CodeTime: Open Timeline"
+      }
+    ]
   }
 }

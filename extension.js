@@ -1,36 +1,67 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+function getTimelinePanelHtml() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: var(--vscode-font-family);
+      color: var(--vscode-foreground);
+      background-color: var(--vscode-editor-background);
+    }
+    h1 { margin-top: 0; font-size: 18px; }
+    p  { font-size: 12px; opacity: 0.8; }
+    .box {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--vscode-editorWidget-border);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>CodeTime Timeline</h1>
+  <p>This confirms FR1: extension activation and timeline command.</p>
+  <div class="box">
+    Next: hook this to real CodeTime activity data.
+  </div>
+</body>
+</html>`;
+}
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+  console.log('CodeTime Starter extension activated');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "codetime" is now active!');
+  // Test command
+  const testDisposable = vscode.commands.registerCommand('codetime.test', () => {
+    vscode.window.showInformationMessage('CodeTime Starter: command ran successfully!');
+  });
+  context.subscriptions.push(testDisposable);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('codetime.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
-
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from CodeTime!');
-	});
-
-	context.subscriptions.push(disposable);
+  // Timeline command -> webview panel
+  const timelineDisposable = vscode.commands.registerCommand('codetime.openTimeline', () => {
+    const panel = vscode.window.createWebviewPanel(
+      'codetimeTimelinePanel',
+      'CodeTime Timeline',
+      vscode.ViewColumn.One,
+      { enableScripts: true }
+    );
+    panel.webview.html = getTimelinePanelHtml();
+  });
+  context.subscriptions.push(timelineDisposable);
 }
 
-// This method is called when your extension is deactivated
 function deactivate() {}
 
 module.exports = {
-	activate,
-	deactivate
-}
+  activate,
+  deactivate
+};
