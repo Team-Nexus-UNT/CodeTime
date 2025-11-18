@@ -12,7 +12,10 @@
   "activationEvents": [
     "onCommand:codetime.test",
     "onCommand:codetime.openTimeline",
-    "onView:codetime.timelineView"
+    "onView:codetime.timelineView",
+    "onCommand:codetime.createWalkthrough",
+    "onCommand:codetime.addWalkthroughStep",
+    "onCommand:codetime.playWalkthrough"
   ],
 
   "contributes": {
@@ -30,7 +33,8 @@
       "codetime": [
         {
           "id": "codetime.timelineView",
-          "name": "Timeline"
+          "name": "Timeline",
+          "icon": "media/codetime.png"
         }
       ]
     },
@@ -43,6 +47,18 @@
       {
         "command": "codetime.openTimeline",
         "title": "CodeTime: Open Timeline"
+      },
+      {
+        "command": "codetime.createWalkthrough",
+        "title": "CodeTime: Create Walkthrough"
+      },
+      {
+        "command": "codetime.addWalkthroughStep",
+        "title": "CodeTime: Add Step to Walkthrough"
+      },
+      {
+        "command": "codetime.playWalkthrough",
+        "title": "CodeTime: Play Walkthrough"
       }
     ]
   }
