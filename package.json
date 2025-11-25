@@ -6,15 +6,18 @@
   "engines": {
     "vscode": "^1.60.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "main": "./extension.js",
-
   "activationEvents": [
     "onCommand:codetime.test",
     "onCommand:codetime.openTimeline",
-    "onView:codetime.timelineView"
+    "onView:codetime.timelineView",
+    "onView:codetime.instructorMode",
+    "onCommand:codetime.openInstructorMode",
+    "onCommand:codetime.uploadAudio"
   ],
-
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -25,16 +28,22 @@
         }
       ]
     },
-
     "views": {
       "codetime": [
         {
           "id": "codetime.timelineView",
-          "name": "Timeline"
+          "name": "Timeline",
+          "type": "webview",
+          "icon": "media/codetime.png"
+        },
+        {
+          "id": "codetime.instructorMode",
+          "name": "Instructor Mode",
+          "type": "webview",
+          "icon": "media/codetime.png"
         }
       ]
     },
-
     "commands": [
       {
         "command": "codetime.test",
@@ -43,7 +52,24 @@
       {
         "command": "codetime.openTimeline",
         "title": "CodeTime: Open Timeline"
+      },
+      {
+        "command": "codetime.uploadAudio",
+        "title": "CodeTime: Upload Audio Clip"
+      },
+      {
+        "command": "codetime.openInstructorMode",
+        "title": "CodeTime: Open Instructor Mode"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "codetime.uploadAudio",
+          "when": "view == codetime.instructorMode",
+          "group": "navigation@1"
+        }
+      ]
+    }
   }
 }
