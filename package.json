@@ -17,6 +17,7 @@
     "onView:codetime.instructorMode",
     "onCommand:codetime.openInstructorMode",
     "onCommand:codetime.uploadAudio"
+    "onCommand:codeTime.addAnnotation"
   ],
   "contributes": {
     "viewsContainers": {
@@ -60,6 +61,10 @@
       {
         "command": "codetime.openInstructorMode",
         "title": "CodeTime: Open Instructor Mode"
+      },
+      {
+        "command": "codetime.addAnnotation",
+        "title": "CodeTime: Add Annotation"
       }
     ],
     "menus": {
