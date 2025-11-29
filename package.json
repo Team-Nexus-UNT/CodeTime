@@ -16,7 +16,7 @@
     "onView:codetime.timelineView",
     "onView:codetime.instructorMode",
     "onCommand:codetime.openInstructorMode",
-    "onCommand:codetime.uploadAudio"
+    "onCommand:codetime.uploadAudio",
     "onCommand:codeTime.addAnnotation"
   ],
   "contributes": {

@@ -167,6 +167,160 @@ async function registerInstructorMode(context) {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider('codetime.instructorMode', provider));
 }
 
+// extension.js — CodeTime FR3: Instructor Mode Annotate Code
+
+let annotationDecorationType;
+
+function ensureAnnotationDecorationType(){
+  if(!annotationDecorationType){
+    annotationDecorationType = vscode.window.createTextEditorDecorationType({
+      isWholeLine: true,
+      after: { margin: '0 0 0 3em' }
+    });
+  }
+}
+
+function getFileKey(document){
+  const relative = vscode.workspace.asRelativePath(document.uri, false);
+  return relative || document.uri.fsPath;
+}
+
+//annotation file helper
+async function getAnnotationFileUri(document){
+  let rootUri;
+
+  const wsFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+  if (wsFolder) {
+    rootUri = wsFolder.uri;
+  } else if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0){
+    rootUri = vscode.workspace.workspaceFolders[0].uri;
+  } else {
+    rootUri = vscode.Uri.joinPath(document.uri, '..');
+  }
+
+  const dir = vscode.Uri.joinPath(rootUri, '.codetime');
+  await vscode.workspace.fs.createDirectory(dir);
+  return vscode.Uri.joinPath(dir, 'annotations.json');
+}
+
+//loading annotations
+async function loadAnnotations(document){
+  try{
+    const fileUri = await getAnnotationFileUri(document);
+    const data = await vscode.workspace.fs.readFile(fileUri);
+    const raw = Buffer.from(data).toString('utf8').trim();
+    if(!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed.annotations)) return parsed.annotations;
+    return[];
+  } catch {
+    return[];
+  }
+}
+
+//save annotations
+async function saveAnnotations(document, annotations){
+  const fileUri = await getAnnotationFileUri(docuement);
+  const payload = JSON.stringify({ annotatiions }, null, 2);
+  const bytes = Buffer.from(payload, 'utf8');
+  await vscode.workspace.fs.writeFile(fileUri, bytes);
+}
+
+//draw annotation
+async function refreshAnnotations(editor){
+  if (!editor) return;
+
+  ensureAnnotationDecorationType();
+
+  const document = editor.docuement;
+  const all = await loadAnnotations(document);
+  const fileKey = getFileKey(document);
+
+  const relevant = all.filter(a => a.file === fileKey);
+
+  const decorations = relevant.map (ann => {
+    const line = Math.min(
+      typeof ann.startLine === 'number'
+      ? ann.startLine
+      : (ann.line ?? 0),
+      document.lineCount - 1
+    );
+
+    const preview = (ann.text || '').replace(/\s+/g, ' ').slice(0, 80);
+    const hover = new vscode.MarkdownString(ann.text || '');
+    hover.isTrusted = true;
+
+    return{
+      range: new vscode.Range(line, 0, line, 0),
+      hoverMessage: hover,
+      renderOptions: {
+        after: {
+          contentText: `💬 ${preview}`
+        }
+      }
+
+    };
+});
+
+editor.setDecorations(annotationDecorationType, decorations);
+}
+
+//add annotation command
+async function addAnnotationCommand(){
+  const editor = vscode.window.activeTextEditor;
+  if(!editor){
+    vscode.window.showErrorMessage('CodeTime: No active editor.');
+    return;
+  }
+
+  const docuement = editor.document;
+  const selection = editor.selection;
+
+  const startLine = selection.start.line;
+  const endLine = selection.isEmpty ? selection.start.line : selection.end.line;
+
+  const text = await vscode.window.showInputBox({
+    prompt: 'Enter annotation markdown'
+  });
+
+  if (!text) return;
+
+  const all = await loadAnnotations(docuement);
+  const fileKey = getFileKey(docuement);
+
+  all.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    file: fileKey,
+    startLine,
+    endLine,
+    text
+  });
+
+  await saveAnnotations(document, all);
+  vscode.window.showInformationMessage('Annotation saved');
+  refreshAnnotations(editor);
+}
+
+//register annotation system
+function registerAnnotationSupport(context){
+  ensureAnnotationDecorationType();
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.addAnnotation', addAnnotationCommand)
+  );
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      const active = vscode.window.activeTextEditor;
+      if (active && event.docuement === active.document) {
+        refreshAnnotations(active);
+      }
+    })
+  );
+}
+
 /* ----------------------------- Activate ----------------------------- */
 async function activate(context) {
   await vscode.workspace.fs.createDirectory(context.globalStorageUri);
@@ -176,8 +330,18 @@ async function activate(context) {
     vscode.commands.registerCommand('codetime.test', () =>
       vscode.window.showInformationMessage('CodeTime activated ✔'))
   );
+
+  registerAnnotationSupport(context);
+
+  if (vscode.window.activeTextEditor) {
+    refreshAnnotations(vscode.window.activeTextEditor);
+  }
 }
 
-function deactivate() {}
+function deactivate() {
+  if (annotationDecorationType) {
+    annotationDecorationType.dispose();
+  }  
+}
 
 module.exports = { activate, deactivate };
