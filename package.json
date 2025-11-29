@@ -10,14 +10,16 @@
     "Other"
   ],
   "main": "./extension.js",
+
   "activationEvents": [
+    "onCommand:codetime.recordVideo",
+    "onCommand:codetime.uploadAudio",
     "onCommand:codetime.test",
-    "onCommand:codetime.openTimeline",
-    "onView:codetime.timelineView",
-    "onView:codetime.instructorMode",
     "onCommand:codetime.openInstructorMode",
-    "onCommand:codetime.uploadAudio"
+    "onView:codetime.timelineView",
+    "onView:codetime.instructorMode"
   ],
+
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -28,6 +30,7 @@
         }
       ]
     },
+
     "views": {
       "codetime": [
         {
@@ -44,24 +47,30 @@
         }
       ]
     },
+
     "commands": [
       {
-        "command": "codetime.test",
-        "title": "CodeTime: Test Activation"
-      },
-      {
-        "command": "codetime.openTimeline",
-        "title": "CodeTime: Open Timeline"
+        "command": "codetime.recordVideo",
+        "title": "CodeTime: Record Video Clip",
+        "category": "CodeTime"
       },
       {
         "command": "codetime.uploadAudio",
-        "title": "CodeTime: Upload Audio Clip"
+        "title": "CodeTime: Upload Audio Clip",
+        "category": "CodeTime"
       },
       {
         "command": "codetime.openInstructorMode",
-        "title": "CodeTime: Open Instructor Mode"
+        "title": "CodeTime: Open Instructor Mode",
+        "category": "CodeTime"
+      },
+      {
+        "command": "codetime.test",
+        "title": "CodeTime: Test Activation",
+        "category": "CodeTime"
       }
     ],
+
     "menus": {
       "view/title": [
         {
