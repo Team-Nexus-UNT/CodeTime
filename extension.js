@@ -266,7 +266,12 @@ async function refreshAnnotations(editor){
     return{
       range: new vscode.Range(line, 0, line, 0),
       hoverMessage: hover,
-      
+      renderOptions: {
+        after: {
+          contentText: '💬',
+          margin: '0 0 0 1.5em'
+        }
+      }
 
     };
 });
