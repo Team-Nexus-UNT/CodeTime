@@ -38,6 +38,7 @@ function instructorHtml(webview, items) {
       h2{margin:0 0 10px;font-size:13px}
       .uploader{border:1px dashed var(--vscode-editorWidget-border);padding:12px;border-radius:8px;margin-bottom:12px}
       ul{list-style:none;margin:0;padding-left:0}
+      .actions{margin-top:10px} 
     </style>
   </head><body>
     <h2>Instructor Mode</h2>
@@ -45,6 +46,9 @@ function instructorHtml(webview, items) {
       <input id="fileInput" type="file" accept=".mp3,.m4a,.wav,.ogg" multiple />
       <p style="opacity:.7;margin:6px 0 0">Files are stored in CodeTime global storage and listed below.</p>
     </div>
+     <div class="actions"> 
+      <button id="addAnnotationButton">Add Annotation from Selection</button> 
+    </div> 
     <ul id="list">${rows}</ul>
     <script>
       const vscode = acquireVsCodeApi();
@@ -61,6 +65,11 @@ function instructorHtml(webview, items) {
         });
         ev.target.value = "";
       });
+
+       document.getElementById('addAnnotationButton').addEventListener('click', () => { 
+        vscode.postMessage({ type: 'addAnnotation' });                                   
+      });        
+
       window.addEventListener('message', (e) => {
         if (e.data?.type === 'refresh') {
           document.getElementById('list').innerHTML = e.data.html;
@@ -138,7 +147,9 @@ async function registerInstructorMode(context) {
           } else if (msg?.type === 'delete' && msg.uri) {
             await vscode.workspace.fs.delete(vscode.Uri.parse(msg.uri));
             vscode.commands.executeCommand('codetime.instructorMode.refresh');
-          }
+          } else if (msg?.type === 'addAnnotation') {               // ⭐ NEW
+            await vscode.commands.executeCommand('codetime.addAnnotation');  // ⭐ NEW
+          }      
         } catch (e) {
           vscode.window.showErrorMessage('Audio action failed: ' + (e?.message || e));
           console.error(e);
@@ -174,8 +185,8 @@ let annotationDecorationType;
 function ensureAnnotationDecorationType(){
   if(!annotationDecorationType){
     annotationDecorationType = vscode.window.createTextEditorDecorationType({
-      isWholeLine: true,
-      after: { margin: '0 0 0 3em' }
+      isWholeLine: true
+      
     });
   }
 }
@@ -222,8 +233,8 @@ async function loadAnnotations(document){
 
 //save annotations
 async function saveAnnotations(document, annotations){
-  const fileUri = await getAnnotationFileUri(docuement);
-  const payload = JSON.stringify({ annotatiions }, null, 2);
+  const fileUri = await getAnnotationFileUri(document);
+  const payload = JSON.stringify({ annotations }, null, 2);
   const bytes = Buffer.from(payload, 'utf8');
   await vscode.workspace.fs.writeFile(fileUri, bytes);
 }
@@ -234,7 +245,7 @@ async function refreshAnnotations(editor){
 
   ensureAnnotationDecorationType();
 
-  const document = editor.docuement;
+  const document = editor.document;
   const all = await loadAnnotations(document);
   const fileKey = getFileKey(document);
 
@@ -255,11 +266,7 @@ async function refreshAnnotations(editor){
     return{
       range: new vscode.Range(line, 0, line, 0),
       hoverMessage: hover,
-      renderOptions: {
-        after: {
-          contentText: `💬 ${preview}`
-        }
-      }
+      
 
     };
 });
@@ -275,7 +282,7 @@ async function addAnnotationCommand(){
     return;
   }
 
-  const docuement = editor.document;
+  const document = editor.document;
   const selection = editor.selection;
 
   const startLine = selection.start.line;
@@ -287,8 +294,8 @@ async function addAnnotationCommand(){
 
   if (!text) return;
 
-  const all = await loadAnnotations(docuement);
-  const fileKey = getFileKey(docuement);
+  const all = await loadAnnotations(document);
+  const fileKey = getFileKey(document);
 
   all.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -313,9 +320,8 @@ function registerAnnotationSupport(context){
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(editor => {
-      const active = vscode.window.activeTextEditor;
-      if (active && event.docuement === active.document) {
-        refreshAnnotations(active);
+      if (editor) {
+        refreshAnnotations(editor);
       }
     })
   );

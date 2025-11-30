@@ -17,7 +17,7 @@
     "onView:codetime.instructorMode",
     "onCommand:codetime.openInstructorMode",
     "onCommand:codetime.uploadAudio",
-    "onCommand:codeTime.addAnnotation"
+    "onCommand:codetime.addAnnotation"
   ],
   "contributes": {
     "viewsContainers": {
