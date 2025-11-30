@@ -47,7 +47,7 @@ function instructorHtml(webview, items) {
       <p style="opacity:.7;margin:6px 0 0">Files are stored in CodeTime global storage and listed below.</p>
     </div>
      <div class="actions"> 
-      <button id="addAnnotationButton">Add Annotation from Selection</button> 
+      <button id="addAnnotationButton">Add Annotation</button> 
     </div> 
     <ul id="list">${rows}</ul>
     <script>
@@ -147,8 +147,8 @@ async function registerInstructorMode(context) {
           } else if (msg?.type === 'delete' && msg.uri) {
             await vscode.workspace.fs.delete(vscode.Uri.parse(msg.uri));
             vscode.commands.executeCommand('codetime.instructorMode.refresh');
-          } else if (msg?.type === 'addAnnotation') {               // ⭐ NEW
-            await vscode.commands.executeCommand('codetime.addAnnotation');  // ⭐ NEW
+          } else if (msg?.type === 'addAnnotation') {               
+            await vscode.commands.executeCommand('codetime.addAnnotation');  
           }      
         } catch (e) {
           vscode.window.showErrorMessage('Audio action failed: ' + (e?.message || e));
