@@ -6,9 +6,10 @@
   "engines": {
     "vscode": "^1.60.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "main": "./extension.js",
-
   "activationEvents": [
     "onCommand:codetime.test",
     "onCommand:codetime.openTimeline",
@@ -16,8 +17,11 @@
     "onCommand:codetime.createWalkthrough",
     "onCommand:codetime.addWalkthroughStep",
     "onCommand:codetime.playWalkthrough"
+    "onView:codetime.instructorMode",
+    "onCommand:codetime.openInstructorMode",
+    "onCommand:codetime.uploadAudio",
+    "onCommand:codetime.addAnnotation"
   ],
-
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -28,7 +32,6 @@
         }
       ]
     },
-
     "views": {
       "codetime": [
         {
@@ -38,7 +41,6 @@
         }
       ]
     },
-
     "commands": [
       {
         "command": "codetime.test",
@@ -60,6 +62,15 @@
         "command": "codetime.playWalkthrough",
         "title": "CodeTime: Play Walkthrough"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "codetime.uploadAudio",
+          "when": "view == codetime.instructorMode",
+          "group": "navigation@1"
+        }
+      ]
+    }
   }
 }
