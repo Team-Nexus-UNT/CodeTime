@@ -42,7 +42,8 @@
         },
         {
           "id": "codetime.walkthroughView",
-          "name": "Walkthroughs"
+          "name": "Walkthroughs",
+          "type": "webview"
         }
       ]
     },
