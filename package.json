@@ -20,7 +20,8 @@
     "onView:codetime.instructorMode",
     "onCommand:codetime.openInstructorMode",
     "onCommand:codetime.uploadAudio",
-    "onCommand:codetime.addAnnotation"
+    "onCommand:codetime.addAnnotation",
+    "onView:codetime.walkthroughView"
   ],
   "contributes": {
     "viewsContainers": {
@@ -38,6 +39,10 @@
           "id": "codetime.timelineView",
           "name": "Timeline",
           "icon": "media/codetime.png"
+        },
+        {
+          "id": "codetime.walkthroughView",
+          "name": "Walkthroughs"
         }
       ]
     },
@@ -61,6 +66,10 @@
       {
         "command": "codetime.playWalkthrough",
         "title": "CodeTime: Play Walkthrough"
+      },
+      {
+        "command": "codetime.uploadAudio",
+        "title": "CodeTime: Upload Audio"
       }
     ],
     "menus": {

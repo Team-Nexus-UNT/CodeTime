@@ -1,11 +1,11 @@
-// Simple storage for walkthrough data. Everything is stored in a JSON
+// simple storage for walkthrough data, everything is stored in a JSON
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
 
 const FILE_NAME = '.codetime_walkthroughs.json';
 
-// Determine storage file location
+// determine storage file location
 function getStoragePath() {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) return null;
@@ -14,7 +14,7 @@ function getStoragePath() {
     return path.join(rootFolder, FILE_NAME);
 }
 
-// Load all walkthroughs from disk. return empty list if none exist
+// load all walkthroughs from disk, return empty list if none exist
 function loadAllWalkthroughs() {
     const storagePath = getStoragePath();
     if (!storagePath || !fs.existsSync(storagePath)) return [];
@@ -28,7 +28,7 @@ function loadAllWalkthroughs() {
     }
 }
 
-// Save full walkthrough list back to disk
+// save full walkthrough list
 function saveAllWalkthroughs(allWalkthroughs) {
     const storagePath = getStoragePath();
     if (!storagePath) return;
@@ -37,13 +37,14 @@ function saveAllWalkthroughs(allWalkthroughs) {
     fs.writeFileSync(storagePath, jsonText, 'utf8');
 }
 
-// Create brand new walkthrough entry
-function createWalkthrough(name) {
+// create brand new walkthrough entry
+function createWalkthrough(name, description) {
     const allWalkthroughs = loadAllWalkthroughs();
 
     const walkthrough = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         name,
+        description: description || '',
         createdAt: new Date().toISOString(),
         steps: []
     };
@@ -68,7 +69,7 @@ function addStepToWalkthrough(walkthroughId, stepInfo) {
     return walkthrough;
 }
 
-// Return all walkthrough objects
+// return all walkthrough objects
 function getAllWalkthroughs() {
     return loadAllWalkthroughs();
 }
