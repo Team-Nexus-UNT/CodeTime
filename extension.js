@@ -1,5 +1,6 @@
 // extension.js — CodeTime FR4: Instructor Mode Audio Upload/Playback/Delete
 const vscode = require('vscode');
+const { registerWalkthroughView } = require('./walkthroughView');
 
 /* ----------------------------- Utilities ----------------------------- */
 async function ensureAudioDir(context) {
@@ -337,6 +338,10 @@ async function activate(context) {
   await vscode.workspace.fs.createDirectory(context.globalStorageUri);
   registerTimelineView(context);
   await registerInstructorMode(context);
+
+  //register  walkthrough sidebar
+  registerWalkthroughView(context);
+  
   context.subscriptions.push(
     vscode.commands.registerCommand('codetime.test', () =>
       vscode.window.showInformationMessage('CodeTime activated ✔'))
