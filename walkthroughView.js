@@ -18,7 +18,6 @@ function getWalkthroughHtml(webview) {
         ">
   <style>
     :root {
-      /* soft green accent */
       --codetime-green: #2e7d32;
       --codetime-green-soft: rgba(46, 125, 50, 0.16);
       --codetime-green-border: rgba(46, 125, 50, 0.65);
@@ -270,7 +269,6 @@ function getWalkthroughHtml(webview) {
       });
     });
 
-    // ask extension for data when view loads
     vscode.postMessage({ type: 'ready' });
   </script>
 </body>
@@ -284,11 +282,19 @@ function registerWalkthroughView(context) {
       view.webview.html = getWalkthroughHtml(view.webview);
 
       function postAll(type) {
-        const all = walkthroughStorage.getAllWalkthroughs();
-        view.webview.postMessage({
-          type,
-          payload: { walkthroughs: all }
-        });
+        try {
+          const all = walkthroughStorage.getAllWalkthroughs();
+          view.webview.postMessage({
+            type,
+            payload: { walkthroughs: all }
+          });
+        } catch (err) {
+          console.error('Walkthrough view error:', err);
+          view.webview.postMessage({
+            type: 'error',
+            payload: err?.message || String(err)
+          });
+        }
       }
 
       view.webview.onDidReceiveMessage((msg) => {
