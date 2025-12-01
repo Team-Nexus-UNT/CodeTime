@@ -368,7 +368,7 @@ function getWalkthroughHtml(webview) {
 
       if (!Array.isArray(w.steps) || w.steps.length === 0) {
         detailSteps.innerHTML =
-          '<li class="steps-empty">No steps yet. Use "Add Step" to capture the current editor position.</li>';
+          '<li class="steps-empty">No steps yet. Use "Add Step".</li>';
       } else {
         detailSteps.innerHTML = w.steps.map(step => {
           const label = step.label || 'Step';
