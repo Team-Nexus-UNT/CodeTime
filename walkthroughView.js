@@ -179,7 +179,7 @@ function getWalkthroughHtml(webview) {
       a short description, then you can add steps, media, and annotations later.
     </div>
     <div class="hint">
-      Tip: Start with something small, like "Intro to loops" or "First refactor".
+      Tip: Start with something small, like "Intro to loops" or "Simplifying logic".
     </div>
   </div>
 
