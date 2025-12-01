@@ -14,13 +14,13 @@
     "onCommand:codetime.test",
     "onCommand:codetime.openTimeline",
     "onView:codetime.timelineView",
-    "onCommand:codetime.createWalkthrough",
-    "onCommand:codetime.addWalkthroughStep",
-    "onCommand:codetime.playWalkthrough",
     "onView:codetime.instructorMode",
     "onCommand:codetime.openInstructorMode",
     "onCommand:codetime.uploadAudio",
     "onCommand:codetime.addAnnotation",
+    "onCommand:codetime.createWalkthrough",
+    "onCommand:codetime.addWalkthroughStep",
+    "onCommand:codetime.playWalkthrough",
     "onView:codetime.walkthroughView"
   ],
   "contributes": {
@@ -38,6 +38,13 @@
         {
           "id": "codetime.timelineView",
           "name": "Timeline",
+          "type": "webview",
+          "icon": "media/codetime.png"
+        },
+        {
+          "id": "codetime.instructorMode",
+          "name": "Instructor Mode",
+          "type": "webview",
           "icon": "media/codetime.png"
         },
         {
@@ -55,6 +62,18 @@
       {
         "command": "codetime.openTimeline",
         "title": "CodeTime: Open Timeline"
+      },
+      {
+        "command": "codetime.openInstructorMode",
+        "title": "CodeTime: Open Instructor Mode"
+      },
+      {
+        "command": "codetime.uploadAudio",
+        "title": "CodeTime: Upload Audio Clip"
+      },
+      {
+        "command": "codetime.addAnnotation",
+        "title": "CodeTime: Add Annotation"
       },
       {
         "command": "codetime.createWalkthrough",
