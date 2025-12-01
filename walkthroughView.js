@@ -1,13 +1,15 @@
-// Walkthrough sidebar view where you can create and list walkthroughs
+// Walkthrough sidebar view
 const vscode = require('vscode');
 const walkthroughStorage = require('./walkthroughStorage');
 
+// builds html ui for the walkthrough view
 function getWalkthroughHtml(webview) {
   const cspSource = webview.cspSource;
 
   return `<!doctype html>
 <html>
 <head>
+  <!-- webview security + css -->
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy"
         content="
@@ -17,6 +19,7 @@ function getWalkthroughHtml(webview) {
           style-src 'unsafe-inline' ${cspSource};
         ">
   <style>
+    /* colors+basic styling */
     :root {
       --codetime-green: #2e7d32;
       --codetime-green-soft: rgba(46, 125, 50, 0.16);
@@ -30,6 +33,7 @@ function getWalkthroughHtml(webview) {
       font-size: 13px;
     }
 
+    /* header area */
     .header {
       display: flex;
       flex-direction: column;
@@ -65,6 +69,7 @@ function getWalkthroughHtml(webview) {
       margin-top: 2px;
     }
 
+    /* new walkthrough form */
     form {
       margin-bottom: 12px;
       padding: 8px;
@@ -111,14 +116,7 @@ function getWalkthroughHtml(webview) {
       cursor: pointer;
     }
 
-    button:hover {
-      filter: brightness(1.05);
-    }
-
-    button:active {
-      filter: brightness(0.95);
-    }
-
+    /* message+list styles */
     #error {
       color: var(--vscode-editorError-foreground, #f14c4c);
       font-size: 11px;
@@ -169,6 +167,8 @@ function getWalkthroughHtml(webview) {
   </style>
 </head>
 <body>
+
+  <!-- top section -->
   <div class="header">
     <div class="header-title">
       <span class="icon">🌱</span>
@@ -183,6 +183,7 @@ function getWalkthroughHtml(webview) {
     </div>
   </div>
 
+  <!-- create-new form -->
   <form id="new-walkthrough-form">
     <div class="field">
       <label for="titleInput">Title</label><br/>
@@ -199,20 +200,24 @@ function getWalkthroughHtml(webview) {
     <div id="error"></div>
   </form>
 
+  <!-- list area -->
   <h2>Your walkthroughs</h2>
   <ul id="walkthroughList">
     <li class="empty">Loading your walkthroughs…</li>
   </ul>
 
   <script>
+    // talk to extension
     const vscode = acquireVsCodeApi();
 
+    // ui references
     const form = document.getElementById('new-walkthrough-form');
     const titleInput = document.getElementById('titleInput');
     const descriptionInput = document.getElementById('descriptionInput');
     const errorEl = document.getElementById('error');
     const listEl = document.getElementById('walkthroughList');
 
+    // render walkthrough list
     function renderList(items) {
       if (!Array.isArray(items) || items.length === 0) {
         listEl.innerHTML =
@@ -231,7 +236,7 @@ function getWalkthroughHtml(webview) {
           <li>
             <div class="wt-title">\${w.name || '(untitled walkthrough)'}</div>
             <div class="wt-meta">
-              \${created ? 'Created: ' + created : ''}
+              \${created ? 'Created: ' + created : ''} 
               \${numSteps ? ' • ' + numSteps + ' step(s)' : ''}
             </div>
             \${desc ? '<div class="wt-desc">' + desc + '</div>' : ''}
@@ -240,9 +245,11 @@ function getWalkthroughHtml(webview) {
       }).join('');
     }
 
+    // receive messages from extension
     window.addEventListener('message', (event) => {
       const msg = event.data;
       if (!msg) return;
+
       switch (msg.type) {
         case 'init':
         case 'updatedWalkthroughs':
@@ -255,6 +262,7 @@ function getWalkthroughHtml(webview) {
       }
     });
 
+    // handle create form
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       errorEl.textContent = '';
@@ -275,12 +283,14 @@ function getWalkthroughHtml(webview) {
 </html>`;
 }
 
+// hook view into vscode
 function registerWalkthroughView(context) {
   const provider = {
     resolveWebviewView(view) {
       view.webview.options = { enableScripts: true };
       view.webview.html = getWalkthroughHtml(view.webview);
 
+      // send list back to webview
       function postAll(type) {
         try {
           const all = walkthroughStorage.getAllWalkthroughs();
@@ -297,6 +307,7 @@ function registerWalkthroughView(context) {
         }
       }
 
+      // handle messages from ui
       view.webview.onDidReceiveMessage((msg) => {
         try {
           if (msg?.type === 'ready') {
@@ -327,6 +338,7 @@ function registerWalkthroughView(context) {
     }
   };
 
+  // register view id
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       'codetime.walkthroughView',
