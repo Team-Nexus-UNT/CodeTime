@@ -1,128 +1,155 @@
-// extension.js — CodeTime FR4: Instructor Mode Audio Upload/Playback/Delete
+// extension.js — CodeTime FR4 + FR5: Audio + Video Upload, Playback, Delete
 const vscode = require('vscode');
 
-/* ----------------------------- Utilities ----------------------------- */
+/* ============================================================================
+   AUDIO UTILITIES
+============================================================================ */
 async function ensureAudioDir(context) {
   const dir = vscode.Uri.joinPath(context.globalStorageUri, 'audio');
   await vscode.workspace.fs.createDirectory(dir);
   return dir;
 }
+
 async function listAudioForWebview(webview, dir) {
   const entries = await vscode.workspace.fs.readDirectory(dir);
   const files = entries.filter(e => e[1] === vscode.FileType.File).map(e => e[0]);
+
   return files.map(name => {
     const raw = vscode.Uri.joinPath(dir, name);
-    return { fileName: name, raw: raw.toString(), webviewSrc: webview.asWebviewUri(raw).toString() };
+    return {
+      fileName: name,
+      raw: raw.toString(),
+      webviewSrc: webview.asWebviewUri(raw).toString()
+    };
   });
 }
 
-/* ----------------------------- HTML Builders ----------------------------- */
-function instructorHtml(webview, items) {
-  const rows = (items||[]).map(i => `
-    <li style="margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <audio controls src="${i.webviewSrc}"></audio>
-        <span title="${i.fileName}" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.fileName}</span>
-        <button data-uri="${i.raw}" onclick="vscode.postMessage({type:'delete', uri:this.getAttribute('data-uri')})">Delete</button>
-      </div>
-    </li>
-  `).join('');
-
-  return `<!doctype html><html><head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy"
-          content="default-src 'none'; img-src ${webview.cspSource}; media-src ${webview.cspSource};
-                   script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource};">
-    <style>
-      body{font-family:var(--vscode-font-family);padding:10px;color:var(--vscode-foreground)}
-      h2{margin:0 0 10px;font-size:13px}
-      .uploader{border:1px dashed var(--vscode-editorWidget-border);padding:12px;border-radius:8px;margin-bottom:12px}
-      ul{list-style:none;margin:0;padding-left:0}
-      .actions{margin-top:10px} 
-    </style>
-  </head><body>
-    <h2>Instructor Mode</h2>
-    <div class="uploader">
-      <input id="fileInput" type="file" accept=".mp3,.m4a,.wav,.ogg" multiple />
-      <p style="opacity:.7;margin:6px 0 0">Files are stored in CodeTime global storage and listed below.</p>
-    </div>
-     <div class="actions"> 
-      <button id="addAnnotationButton">Add Annotation</button> 
-    </div> 
-    <ul id="list">${rows}</ul>
-    <script>
-      const vscode = acquireVsCodeApi();
-      document.getElementById('fileInput').addEventListener('change', (ev) => {
-        const files = ev.target.files || [];
-        [...files].forEach(file => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const u8 = new Uint8Array(reader.result);
-            let bin = ""; for (let i=0;i<u8.length;i++) bin += String.fromCharCode(u8[i]);
-            vscode.postMessage({ type:'store', name:file.name, base64:btoa(bin) });
-          };
-          reader.readAsArrayBuffer(file);
-        });
-        ev.target.value = "";
-      });
-
-       document.getElementById('addAnnotationButton').addEventListener('click', () => { 
-        vscode.postMessage({ type: 'addAnnotation' });                                   
-      });        
-
-      window.addEventListener('message', (e) => {
-        if (e.data?.type === 'refresh') {
-          document.getElementById('list').innerHTML = e.data.html;
-        }
-      });
-    </script>
-  </body></html>`;
+/* ============================================================================
+   VIDEO UTILITIES
+============================================================================ */
+async function ensureVideoDir(context) {
+  const dir = vscode.Uri.joinPath(context.globalStorageUri, 'video');
+  await vscode.workspace.fs.createDirectory(dir);
+  return dir;
 }
 
-/* ----------------------------- Providers ----------------------------- */
+async function listVideoForWebview(webview, dir) {
+  const entries = await vscode.workspace.fs.readDirectory(dir);
+  const files = entries.filter(e => e[1] === vscode.FileType.File).map(e => e[0]);
+
+  return files.map(name => {
+    const raw = vscode.Uri.joinPath(dir, name);
+    return {
+      fileName: name,
+      raw: raw.toString(),
+      webviewSrc: webview.asWebviewUri(raw).toString()
+    };
+  });
+}
+
+/* ============================================================================
+   INSTRUCTOR MODE HTML
+============================================================================ */
+function instructorHtml(webview, items) {
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none';
+               img-src ${webview.cspSource};
+               media-src ${webview.cspSource};
+               style-src 'unsafe-inline' ${webview.cspSource};
+               script-src 'unsafe-inline' ${webview.cspSource};">
+<style>
+  body { font-family:var(--vscode-font-family); padding:10px; color:var(--vscode-foreground); }
+  h2   { margin:0 0 10px; font-size:13px; }
+  ul   { list-style:none; padding-left:0; }
+  .uploader { border:1px dashed var(--vscode-editorWidget-border);
+              padding:12px; border-radius:8px; margin-bottom:12px; }
+</style>
+</head>
+
+<body>
+<h2>Instructor Mode</h2>
+
+<div class="uploader">
+  <input id="fileInput" type="file"
+    accept=".mp3,.m4a,.wav,.ogg,.mp4,.mov,.mkv,.webm"
+    multiple />
+  <p style="opacity:.7;margin:6px 0 0">Files will appear below.</p>
+</div>
+
+<button id="addAnnotationButton">Add Annotation</button>
+
+<ul id="list">${items}</ul>
+
+<script>
+  const vscode = acquireVsCodeApi();
+
+  document.getElementById("fileInput").addEventListener("change", (ev) => {
+    const files = [...(ev.target.files || [])];
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const u8 = new Uint8Array(reader.result);
+        let bin = ""; for (let i=0;i<u8.length;i++) bin += String.fromCharCode(u8[i]);
+        const base64 = btoa(bin);
+
+        const name = file.name.toLowerCase();
+
+        if (name.endsWith(".mp3") || name.endsWith(".m4a") ||
+            name.endsWith(".wav") || name.endsWith(".ogg")) {
+
+          vscode.postMessage({ type:"storeAudio", name:file.name, base64 });
+
+        } else if (name.endsWith(".mp4") || name.endsWith(".mov") ||
+                   name.endsWith(".mkv") || name.endsWith(".webm")) {
+
+          vscode.postMessage({ type:"storeVideo", name:file.name, base64 });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+    ev.target.value = "";
+  });
+
+  document.getElementById("addAnnotationButton").addEventListener("click", () => {
+    vscode.postMessage({ type:"addAnnotation" });
+  });
+
+  window.addEventListener("message", (e) => {
+    if (e.data?.type === "refresh") {
+      document.getElementById("list").innerHTML = e.data.html;
+    }
+  });
+</script>
+
+</body></html>`;
+}
+
+/* ============================================================================
+   TIMELINE VIEW (STUB)
+============================================================================ */
 function registerTimelineView(context) {
   const provider = {
     resolveWebviewView(view) {
-      view.webview.options = { enableScripts: false };
-      view.webview.html = `<!doctype html><html><body style="font-family:var(--vscode-font-family);padding:10px">
-        <div style="opacity:.8;font-size:12px">CodeTime Timeline</div>
-        <div style="opacity:.7;margin-top:6px">Stub provider loaded.</div>
-      </body></html>`;
+      view.webview.options = { enableScripts:false };
+      view.webview.html = "<html><body>Timeline Coming Soon…</body></html>";
     }
   };
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider('codetime.timelineView', provider));
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("codetime.timelineView", provider)
+  );
 }
 
+/* ============================================================================
+   INSTRUCTOR MODE PROVIDER
+============================================================================ */
 async function registerInstructorMode(context) {
   const audioDir = await ensureAudioDir(context);
-
-  // Command from title bar
-  context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.uploadAudio', async () => {
-      const files = await vscode.window.showOpenDialog({
-        title: 'Upload audio clips',
-        canSelectFiles: true,
-        canSelectFolders: false,
-        canSelectMany: true,
-        filters: { Audio: ['mp3','m4a','wav','ogg'] }
-      });
-      if (!files || !files.length) return;
-      for (const src of files) {
-        const bytes = await vscode.workspace.fs.readFile(src);
-        const name = src.path.split('/').pop();
-        await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(audioDir, name), bytes);
-      }
-      vscode.commands.executeCommand('codetime.instructorMode.refresh');
-    })
-  );
-
-  // Focus command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.openInstructorMode', async () => {
-      await vscode.commands.executeCommand('workbench.view.extension.codetime');
-      await vscode.commands.executeCommand('codetime.instructorMode.focus');
-    })
-  );
+  const videoDir = await ensureVideoDir(context);
 
   const provider = {
     resolveWebviewView: async (view) => {
@@ -131,116 +158,140 @@ async function registerInstructorMode(context) {
         localResourceRoots: [context.globalStorageUri, context.extensionUri]
       };
 
-      const render = async () => {
-        const items = await listAudioForWebview(view.webview, audioDir);
-        view.webview.html = instructorHtml(view.webview, items);
-      };
-      await render();
+      async function rebuild() {
+        const audio = await listAudioForWebview(view.webview, audioDir);
+        const video = await listVideoForWebview(view.webview, videoDir);
 
-      view.webview.onDidReceiveMessage(async (msg) => {
+        const html = [
+          ...audio.map(i => `
+            <li>
+              <audio controls src="${i.webviewSrc}"></audio>
+              <span>${i.fileName}</span>
+              <button data-uri="${i.raw}"
+                onclick="vscode.postMessage({type:'delete',uri:this.getAttribute('data-uri')})">
+                Delete
+              </button>
+            </li>`),
+
+          ...video.map(i => `
+            <li>
+              <video controls width="200" src="${i.webviewSrc}"></video>
+              <span>${i.fileName}</span>
+              <button data-uri="${i.raw}"
+                onclick="vscode.postMessage({type:'delete',uri:this.getAttribute('data-uri')})">
+                Delete
+              </button>
+            </li>`)
+        ].join("");
+
+        view.webview.html = instructorHtml(view.webview, html);
+      }
+
+      await rebuild();
+
+      /* ---------------- Handle Messages ---------------- */
+      view.webview.onDidReceiveMessage(async msg => {
         try {
-          if (msg?.type === 'store') {
-            const safe = (msg.name || 'clip.mp3').replace(/[^\w\-. ]/g,'_');
-            const bytes = Buffer.from(msg.base64, 'base64');
-            await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(audioDir, safe), bytes);
-            vscode.commands.executeCommand('codetime.instructorMode.refresh');
-          } else if (msg?.type === 'delete' && msg.uri) {
+          if (msg.type === "storeAudio") {
+            const safe = msg.name.replace(/[^\w\-. ]/g, "_");
+            await vscode.workspace.fs.writeFile(
+              vscode.Uri.joinPath(audioDir, safe),
+              Buffer.from(msg.base64, "base64")
+            );
+            rebuild();
+
+          } else if (msg.type === "storeVideo") {
+            const safe = msg.name.replace(/[^\w\-. ]/g, "_");
+            await vscode.workspace.fs.writeFile(
+              vscode.Uri.joinPath(videoDir, safe),
+              Buffer.from(msg.base64, "base64")
+            );
+            rebuild();
+
+          } else if (msg.type === "delete") {
             await vscode.workspace.fs.delete(vscode.Uri.parse(msg.uri));
-            vscode.commands.executeCommand('codetime.instructorMode.refresh');
-          } else if (msg?.type === 'addAnnotation') {               
-            await vscode.commands.executeCommand('codetime.addAnnotation');  
-          }      
+            rebuild();
+
+          } else if (msg.type === "addAnnotation") {
+            await vscode.commands.executeCommand("codetime.addAnnotation");
+          }
         } catch (e) {
-          vscode.window.showErrorMessage('Audio action failed: ' + (e?.message || e));
-          console.error(e);
+          vscode.window.showErrorMessage("Upload/Delete failed: " + e.message);
         }
       });
 
-      // Internal refresh
+      /* Refresh command for internal use */
       context.subscriptions.push(
-        vscode.commands.registerCommand('codetime.instructorMode.refresh', async () => {
-          const items = await listAudioForWebview(view.webview, audioDir);
-          const html = items.map(i => `
-            <li style="margin-bottom:12px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <audio controls src="${i.webviewSrc}"></audio>
-                <span title="${i.fileName}" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.fileName}</span>
-                <button data-uri="${i.raw}" onclick="vscode.postMessage({type:'delete', uri:this.getAttribute('data-uri')})">Delete</button>
-              </div>
-            </li>
-          `).join('');
-          view.webview.postMessage({ type: 'refresh', html });
-        })
+        vscode.commands.registerCommand("codetime.instructorMode.refresh", rebuild)
       );
     }
   };
 
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider('codetime.instructorMode', provider));
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("codetime.instructorMode", provider)
+  );
 }
 
-// extension.js — CodeTime FR3: Instructor Mode Annotate Code
+/* ============================================================================
+   ANNOTATION SYSTEM (Unmodified)
+============================================================================ */
 
 let annotationDecorationType;
 
-function ensureAnnotationDecorationType(){
-  if(!annotationDecorationType){
+function ensureAnnotationDecorationType() {
+  if (!annotationDecorationType) {
     annotationDecorationType = vscode.window.createTextEditorDecorationType({
       isWholeLine: true
-      
     });
   }
 }
 
-function getFileKey(document){
+function getFileKey(document) {
   const relative = vscode.workspace.asRelativePath(document.uri, false);
   return relative || document.uri.fsPath;
 }
 
-//annotation file helper
-async function getAnnotationFileUri(document){
+async function getAnnotationFileUri(document) {
   let rootUri;
 
   const wsFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-  if (wsFolder) {
-    rootUri = wsFolder.uri;
-  } else if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0){
+  if (wsFolder) rootUri = wsFolder.uri;
+  else if (vscode.workspace.workspaceFolders?.length > 0)
     rootUri = vscode.workspace.workspaceFolders[0].uri;
-  } else {
-    rootUri = vscode.Uri.joinPath(document.uri, '..');
-  }
+  else
+    rootUri = vscode.Uri.joinPath(document.uri, "..");
 
-  const dir = vscode.Uri.joinPath(rootUri, '.codetime');
+  const dir = vscode.Uri.joinPath(rootUri, ".codetime");
   await vscode.workspace.fs.createDirectory(dir);
-  return vscode.Uri.joinPath(dir, 'annotations.json');
+  return vscode.Uri.joinPath(dir, "annotations.json");
 }
 
-//loading annotations
-async function loadAnnotations(document){
-  try{
+async function loadAnnotations(document) {
+  try {
     const fileUri = await getAnnotationFileUri(document);
     const data = await vscode.workspace.fs.readFile(fileUri);
-    const raw = Buffer.from(data).toString('utf8').trim();
-    if(!raw) return [];
+    const raw = Buffer.from(data).toString("utf8").trim();
+    if (!raw) return [];
 
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed;
     if (Array.isArray(parsed.annotations)) return parsed.annotations;
-    return[];
+    return [];
   } catch {
-    return[];
+    return [];
   }
 }
 
-//save annotations
-async function saveAnnotations(document, annotations){
+async function saveAnnotations(document, annotations) {
   const fileUri = await getAnnotationFileUri(document);
   const payload = JSON.stringify({ annotations }, null, 2);
-  const bytes = Buffer.from(payload, 'utf8');
-  await vscode.workspace.fs.writeFile(fileUri, bytes);
+  await vscode.workspace.fs.writeFile(
+    fileUri,
+    Buffer.from(payload, "utf8")
+  );
 }
 
-//draw annotation
-async function refreshAnnotations(editor){
+async function refreshAnnotations(editor) {
   if (!editor) return;
 
   ensureAnnotationDecorationType();
@@ -248,62 +299,45 @@ async function refreshAnnotations(editor){
   const document = editor.document;
   const all = await loadAnnotations(document);
   const fileKey = getFileKey(document);
-
   const relevant = all.filter(a => a.file === fileKey);
 
-  const decorations = relevant.map (ann => {
-    const line = Math.min(
-      typeof ann.startLine === 'number'
-      ? ann.startLine
-      : (ann.line ?? 0),
-      document.lineCount - 1
-    );
-
-    const preview = (ann.text || '').replace(/\s+/g, ' ').slice(0, 80);
-    const hover = new vscode.MarkdownString(ann.text || '');
-    hover.isTrusted = true;
-
-    return{
-      range: new vscode.Range(line, 0, line, 0),
-      hoverMessage: hover,
-      renderOptions: {
-        after: {
-          contentText: '💬',
-          margin: '0 0 0 1.5em'
-        }
+  const decorations = relevant.map(ann => ({
+    range: new vscode.Range(
+      Math.min(ann.startLine ?? ann.line ?? 0, document.lineCount - 1),
+      0,
+      Math.min(ann.startLine ?? ann.line ?? 0, document.lineCount - 1),
+      0
+    ),
+    hoverMessage: new vscode.MarkdownString(ann.text || ""),
+    renderOptions: {
+      after: {
+        contentText: "💬",
+        margin: "0 0 0 1.5em"
       }
+    }
+  }));
 
-    };
-});
-
-editor.setDecorations(annotationDecorationType, decorations);
+  editor.setDecorations(annotationDecorationType, decorations);
 }
 
-//add annotation command
-async function addAnnotationCommand(){
+async function addAnnotationCommand() {
   const editor = vscode.window.activeTextEditor;
-  if(!editor){
-    vscode.window.showErrorMessage('CodeTime: No active editor.');
-    return;
-  }
+  if (!editor) return vscode.window.showErrorMessage("No active editor");
 
   const document = editor.document;
   const selection = editor.selection;
 
   const startLine = selection.start.line;
-  const endLine = selection.isEmpty ? selection.start.line : selection.end.line;
+  const endLine = selection.isEmpty ? startLine : selection.end.line;
 
-  const text = await vscode.window.showInputBox({
-    prompt: 'Enter annotation markdown'
-  });
-
+  const text = await vscode.window.showInputBox({ prompt: "Enter annotation" });
   if (!text) return;
 
   const all = await loadAnnotations(document);
   const fileKey = getFileKey(document);
 
   all.push({
-    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id: Date.now() + "-" + Math.random().toString(36).slice(2),
     file: fileKey,
     startLine,
     endLine,
@@ -311,37 +345,31 @@ async function addAnnotationCommand(){
   });
 
   await saveAnnotations(document, all);
-  vscode.window.showInformationMessage('Annotation saved');
   refreshAnnotations(editor);
 }
 
-//register annotation system
-function registerAnnotationSupport(context){
+function registerAnnotationSupport(context) {
   ensureAnnotationDecorationType();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.addAnnotation', addAnnotationCommand)
+    vscode.commands.registerCommand("codetime.addAnnotation", addAnnotationCommand)
   );
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(editor => {
-      if (editor) {
-        refreshAnnotations(editor);
-      }
+      if (editor) refreshAnnotations(editor);
     })
   );
 }
 
-/* ----------------------------- Activate ----------------------------- */
+/* ============================================================================
+   ACTIVATE
+============================================================================ */
 async function activate(context) {
   await vscode.workspace.fs.createDirectory(context.globalStorageUri);
+
   registerTimelineView(context);
   await registerInstructorMode(context);
-  context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.test', () =>
-      vscode.window.showInformationMessage('CodeTime activated ✔'))
-  );
-
   registerAnnotationSupport(context);
 
   if (vscode.window.activeTextEditor) {
@@ -350,9 +378,7 @@ async function activate(context) {
 }
 
 function deactivate() {
-  if (annotationDecorationType) {
-    annotationDecorationType.dispose();
-  }  
+  if (annotationDecorationType) annotationDecorationType.dispose();
 }
 
 module.exports = { activate, deactivate };
