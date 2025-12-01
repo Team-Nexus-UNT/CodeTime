@@ -16,7 +16,7 @@
     "onView:codetime.timelineView",
     "onCommand:codetime.createWalkthrough",
     "onCommand:codetime.addWalkthroughStep",
-    "onCommand:codetime.playWalkthrough"
+    "onCommand:codetime.playWalkthrough",
     "onView:codetime.instructorMode",
     "onCommand:codetime.openInstructorMode",
     "onCommand:codetime.uploadAudio",
