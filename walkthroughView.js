@@ -116,6 +116,12 @@ function getWalkthroughHtml(webview) {
       cursor: pointer;
     }
 
+    button.secondary {
+      background: transparent;
+      color: var(--vscode-foreground);
+      border-color: var(--vscode-editorWidget-border, #444);
+    }
+
     /* message+list styles */
     #error {
       color: var(--vscode-editorError-foreground, #f14c4c);
@@ -164,6 +170,54 @@ function getWalkthroughHtml(webview) {
       opacity: 0.7;
       font-size: 12px;
     }
+
+    .wt-card {
+      cursor: pointer;
+    }
+
+    .wt-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    /* detail view */
+    #detailView {
+      margin-top: 8px;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .detail-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .detail-meta {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .detail-desc {
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .steps-empty {
+      font-size: 12px;
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
@@ -200,11 +254,33 @@ function getWalkthroughHtml(webview) {
     <div id="error"></div>
   </form>
 
-  <!-- list area -->
-  <h2>Your walkthroughs</h2>
-  <ul id="walkthroughList">
-    <li class="empty">Loading your walkthroughs…</li>
-  </ul>
+  <!-- list view -->
+  <div id="listView">
+    <h2>Your walkthroughs</h2>
+    <ul id="walkthroughList">
+      <li class="empty">Loading your walkthroughs…</li>
+    </ul>
+  </div>
+
+  <!-- detail view (hidden by default) -->
+  <div id="detailView" style="display:none">
+    <div class="detail-header">
+    <div class="detail-title" id="detailTitle"></div>
+      <button id="backToList" class="secondary">← Back</button>
+    </div>
+    <div class="detail-meta" id="detailMeta"></div>
+    <div class="detail-desc" id="detailDesc"></div>
+
+    <div class="detail-actions">
+      <button id="detailAddStep">Add Step</button>
+      <button id="detailPlay">Play Walkthrough</button>
+    </div>
+
+    <h2>Steps</h2>
+    <ul id="detailSteps">
+      <li class="steps-empty">No steps yet. Use "Add Step" to capture the current editor position.</li>
+    </ul>
+  </div>
 
   <script>
     // talk to extension
@@ -216,12 +292,39 @@ function getWalkthroughHtml(webview) {
     const descriptionInput = document.getElementById('descriptionInput');
     const errorEl = document.getElementById('error');
     const listEl = document.getElementById('walkthroughList');
+    const listView = document.getElementById('listView');
+    const detailView = document.getElementById('detailView');
+
+    const backBtn = document.getElementById('backToList');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailMeta = document.getElementById('detailMeta');
+    const detailDesc = document.getElementById('detailDesc');
+    const detailSteps = document.getElementById('detailSteps');
+    const detailAddStep = document.getElementById('detailAddStep');
+    const detailPlay = document.getElementById('detailPlay');
+
+    // which walkthrough is currently open
+    let currentWalkthroughId = null;
+    let walkthroughCache = [];
+
+    // show/hide sections
+    function showListView() {
+      detailView.style.display = 'none';
+      listView.style.display = 'block';
+    }
+
+    function showDetailView() {
+      listView.style.display = 'none';
+      detailView.style.display = 'block';
+    }
 
     // render walkthrough list
     function renderList(items) {
+      walkthroughCache = Array.isArray(items) ? items : [];
+
       if (!Array.isArray(items) || items.length === 0) {
         listEl.innerHTML =
-          '<li class="empty">No walkthroughs yet. Create your first one above. </li>';
+          '<li class="empty">No walkthroughs yet. Create your first one above.</li>';
         return;
       }
 
@@ -233,7 +336,7 @@ function getWalkthroughHtml(webview) {
         const desc = (w.description || '').trim();
 
         return \`
-          <li>
+          <li class="wt-card" data-id="\${w.id}">
             <div class="wt-title">\${w.name || '(untitled walkthrough)'}</div>
             <div class="wt-meta">
               \${created ? 'Created: ' + created : ''} 
@@ -245,6 +348,83 @@ function getWalkthroughHtml(webview) {
       }).join('');
     }
 
+    // render the detail view for a single walkthrough
+    function renderDetail(w) {
+      if (!w) {
+        showListView();
+        return;
+      }
+
+      currentWalkthroughId = w.id;
+
+      const created = w.createdAt
+        ? new Date(w.createdAt).toLocaleString()
+        : '';
+      const desc = (w.description || '').trim();
+
+      detailTitle.textContent = w.name || '(untitled walkthrough)';
+      detailMeta.textContent = created ? 'Created: ' + created : '';
+      detailDesc.textContent = desc || '';
+
+      if (!Array.isArray(w.steps) || w.steps.length === 0) {
+        detailSteps.innerHTML =
+          '<li class="steps-empty">No steps yet. Use "Add Step" to capture the current editor position.</li>';
+      } else {
+        detailSteps.innerHTML = w.steps.map(step => {
+          const label = step.label || 'Step';
+          const file = step.file || '';
+          const line = typeof step.line === 'number' ? step.line : '';
+          const note = (step.note || '').trim();
+
+          return \`
+            <li>
+              <div class="wt-title">\${label}</div>
+              <div class="wt-meta">\${file} \${line !== '' ? '• line ' + line : ''}</div>
+              \${note ? '<div class="wt-desc">' + note + '</div>' : ''}
+            </li>
+          \`;
+        }).join('');
+      }
+
+      showDetailView();
+    }
+
+    // click on a walkthrough in the list
+    listEl.addEventListener('click', (e) => {
+      const card = e.target.closest('.wt-card');
+      if (!card) return;
+      const id = card.getAttribute('data-id');
+      if (!id) return;
+
+      vscode.postMessage({
+        type: 'selectWalkthrough',
+        id
+      });
+    });
+
+    // back button
+    backBtn.addEventListener('click', () => {
+      currentWalkthroughId = null;
+      showListView();
+    });
+
+    // detail actions
+    detailAddStep.addEventListener('click', () => {
+      if (!currentWalkthroughId) return;
+      vscode.postMessage({
+        type: 'addStepClicked',
+        walkthroughId: currentWalkthroughId
+      });
+    });
+
+    detailPlay.addEventListener('click', () => {
+      if (!currentWalkthroughId) return;
+      vscode.postMessage({
+        type: 'playClicked',
+        walkthroughId: currentWalkthroughId
+      });
+    });
+
     // receive messages from extension
     window.addEventListener('message', (event) => {
       const msg = event.data;
@@ -255,6 +435,11 @@ function getWalkthroughHtml(webview) {
         case 'updatedWalkthroughs':
           errorEl.textContent = '';
           renderList((msg.payload && msg.payload.walkthroughs) || []);
+          showListView();
+          break;
+        case 'openWalkthrough':
+          errorEl.textContent = '';
+          renderDetail(msg.payload && msg.payload.walkthrough);
           break;
         case 'error':
           errorEl.textContent = msg.payload || 'Something went wrong.';
@@ -277,6 +462,7 @@ function getWalkthroughHtml(webview) {
       });
     });
 
+    // tell extension we are ready
     vscode.postMessage({ type: 'ready' });
   </script>
 </body>
@@ -290,7 +476,7 @@ function registerWalkthroughView(context) {
       view.webview.options = { enableScripts: true };
       view.webview.html = getWalkthroughHtml(view.webview);
 
-      // send list back to webview
+      // helper: send list back to webview
       function postAll(type) {
         try {
           const all = walkthroughStorage.getAllWalkthroughs();
@@ -326,6 +512,23 @@ function registerWalkthroughView(context) {
 
             walkthroughStorage.createWalkthrough(title, description);
             postAll('updatedWalkthroughs');
+          } else if (msg?.type === 'selectWalkthrough') {
+            const wt = walkthroughStorage.getWalkthroughById(msg.id);
+            view.webview.postMessage({
+              type: 'openWalkthrough',
+              payload: { walkthrough: wt }
+            });
+          } else if (msg?.type === 'addStepClicked') {
+            // pass walkthrough id to command
+            vscode.commands.executeCommand(
+              'codetime.addWalkthroughStep',
+              msg.walkthroughId
+            );
+          } else if (msg?.type === 'playClicked') {
+            vscode.commands.executeCommand(
+              'codetime.playWalkthrough',
+              msg.walkthroughId
+            );
           }
         } catch (err) {
           console.error('Walkthrough view error:', err);
