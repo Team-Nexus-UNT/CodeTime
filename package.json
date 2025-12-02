@@ -16,8 +16,12 @@
     "onCommand:codetime.uploadAudio",
     "onCommand:codetime.test",
     "onCommand:codetime.openInstructorMode",
-    "onView:codetime.timelineView",
-    "onView:codetime.instructorMode"
+    "onCommand:codetime.uploadAudio",
+    "onCommand:codetime.addAnnotation",
+    "onCommand:codetime.createWalkthrough",
+    "onCommand:codetime.addWalkthroughStep",
+    "onCommand:codetime.playWalkthrough",
+    "onView:codetime.walkthroughView"
   ],
 
   "contributes": {
@@ -44,6 +48,12 @@
           "name": "Instructor Mode",
           "type": "webview",
           "icon": "media/codetime.png"
+        },
+        {
+          "id": "codetime.walkthroughView",
+          "name": "Walkthroughs",
+          "type": "webview",
+          "icon": "media/codetime.png"
         }
       ]
     },
@@ -55,19 +65,33 @@
         "category": "CodeTime"
       },
       {
+        "command": "codetime.openInstructorMode",
+        "title": "CodeTime: Open Instructor Mode"
+      },
+      {
         "command": "codetime.uploadAudio",
         "title": "CodeTime: Upload Audio Clip",
         "category": "CodeTime"
       },
       {
-        "command": "codetime.openInstructorMode",
-        "title": "CodeTime: Open Instructor Mode",
-        "category": "CodeTime"
+        "command": "codetime.addAnnotation",
+        "title": "CodeTime: Add Annotation"
       },
       {
-        "command": "codetime.test",
-        "title": "CodeTime: Test Activation",
-        "category": "CodeTime"
+        "command": "codetime.createWalkthrough",
+        "title": "CodeTime: Create Walkthrough"
+      },
+      {
+        "command": "codetime.addWalkthroughStep",
+        "title": "CodeTime: Add Step to Walkthrough"
+      },
+      {
+        "command": "codetime.playWalkthrough",
+        "title": "CodeTime: Play Walkthrough"
+      },
+      {
+        "command": "codetime.uploadAudio",
+        "title": "CodeTime: Upload Audio"
       }
     ],
 
