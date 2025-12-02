@@ -1,5 +1,6 @@
 // extension.js — CodeTime FR4 + FR5: Audio + Video Upload, Playback, Delete
 const vscode = require('vscode');
+const { registerWalkthroughView } = require('./walkthroughView');
 
 /* ============================================================================
    AUDIO UTILITIES
@@ -370,6 +371,15 @@ async function activate(context) {
 
   registerTimelineView(context);
   await registerInstructorMode(context);
+
+  //register  walkthrough sidebar
+  registerWalkthroughView(context);
+  
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.test', () =>
+      vscode.window.showInformationMessage('CodeTime activated ✔'))
+  );
+
   registerAnnotationSupport(context);
 
   if (vscode.window.activeTextEditor) {
