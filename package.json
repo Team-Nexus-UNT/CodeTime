@@ -3,20 +3,16 @@
   "displayName": "CodeTime",
   "publisher": "codetime-dev",
   "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.60.0"
-  },
-  "categories": [
-    "Other"
-  ],
+  "engines": { "vscode": "^1.60.0" },
+  "categories": ["Other"],
   "main": "./extension.js",
 
   "activationEvents": [
-    "onCommand:codetime.recordVideo",
     "onCommand:codetime.uploadAudio",
+    "onCommand:codetime.uploadVideo",
+    "onCommand:codetime.recordVideo",
     "onCommand:codetime.test",
     "onCommand:codetime.openInstructorMode",
-    "onCommand:codetime.uploadAudio",
     "onCommand:codetime.addAnnotation",
     "onCommand:codetime.createWalkthrough",
     "onCommand:codetime.addWalkthroughStep",
@@ -27,82 +23,38 @@
   "contributes": {
     "viewsContainers": {
       "activitybar": [
-        {
-          "id": "codetime",
-          "title": "CodeTime",
-          "icon": "media/codetime.png"
-        }
+        { "id": "codetime", "title": "CodeTime", "icon": "media/codetime.png" }
       ]
     },
-
     "views": {
       "codetime": [
-        {
-          "id": "codetime.timelineView",
-          "name": "Timeline",
-          "type": "webview",
-          "icon": "media/codetime.png"
-        },
-        {
-          "id": "codetime.instructorMode",
-          "name": "Instructor Mode",
-          "type": "webview",
-          "icon": "media/codetime.png"
-        },
-        {
-          "id": "codetime.walkthroughView",
-          "name": "Walkthroughs",
-          "type": "webview",
-          "icon": "media/codetime.png"
-        }
+        { "id": "codetime.timelineView", "name": "Timeline", "type": "webview", "icon": "media/codetime.png" },
+        { "id": "codetime.instructorMode", "name": "Instructor Mode", "type": "webview", "icon": "media/codetime.png" },
+        { "id": "codetime.walkthroughView", "name": "Walkthroughs", "type": "webview", "icon": "media/codetime.png" }
       ]
     },
-
     "commands": [
-      {
-        "command": "codetime.recordVideo",
-        "title": "CodeTime: Record Video Clip",
-        "category": "CodeTime"
-      },
-      {
-        "command": "codetime.openInstructorMode",
-        "title": "CodeTime: Open Instructor Mode"
-      },
       {
         "command": "codetime.uploadAudio",
         "title": "CodeTime: Upload Audio Clip",
         "category": "CodeTime"
       },
       {
-        "command": "codetime.addAnnotation",
-        "title": "CodeTime: Add Annotation"
+        "command": "codetime.uploadVideo",
+        "title": "CodeTime: Upload Video",
+        "category": "CodeTime"
       },
       {
-        "command": "codetime.createWalkthrough",
-        "title": "CodeTime: Create Walkthrough"
+        "command": "codetime.recordVideo",
+        "title": "CodeTime: Record Video (legacy alias)",
+        "category": "CodeTime"
       },
-      {
-        "command": "codetime.addWalkthroughStep",
-        "title": "CodeTime: Add Step to Walkthrough"
-      },
-      {
-        "command": "codetime.playWalkthrough",
-        "title": "CodeTime: Play Walkthrough"
-      },
-      {
-        "command": "codetime.uploadAudio",
-        "title": "CodeTime: Upload Audio"
-      }
-    ],
-
-    "menus": {
-      "view/title": [
-        {
-          "command": "codetime.uploadAudio",
-          "when": "view == codetime.instructorMode",
-          "group": "navigation@1"
-        }
-      ]
-    }
+      { "command": "codetime.openInstructorMode", "title": "CodeTime: Open Instructor Mode" },
+      { "command": "codetime.addAnnotation", "title": "CodeTime: Add Annotation" },
+      { "command": "codetime.createWalkthrough", "title": "CodeTime: Create Walkthrough" },
+      { "command": "codetime.addWalkthroughStep", "title": "CodeTime: Add Step to Walkthrough" },
+      { "command": "codetime.playWalkthrough", "title": "CodeTime: Play Walkthrough" },
+      { "command": "codetime.test", "title": "CodeTime: Test Activation", "category": "CodeTime" }
+    ]
   }
 }
