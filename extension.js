@@ -1,9 +1,12 @@
 // extension.js — CodeTime: Audio/Video Upload + Annotations (modular)
 const vscode = require('vscode');
 
+// Views
 const { registerWalkthroughView } = require('./walkthroughView');
 const { registerTimelineView } = require('./timelineView');
 const { registerInstructorMode } = require('./instructorModeView');
+
+// Feature modules
 const { uploadAudioCommand } = require('./audioStorage');
 const { uploadVideoCommand } = require('./videoStorage');
 const {
@@ -12,13 +15,8 @@ const {
   disposeAnnotations
 } = require('./annotations');
 
-/* ============================================================================
-   ANNOTATION SYSTEM (moved to annotations.js)
-   TIMELINE VIEW (moved to timelineView.js)
-   INSTRUCTOR MODE HTML (moved to instructorModeView.js)
-   VIDEO UTILITIES (moved to videoStorage.js)
-   AUDIO UTILITIES (moved to audioStorage.js)
-============================================================================ */
+// Git integration (Sprint 4)
+const gitService = require('./services/gitService');
 
 /* ============================================================================
    ACTIVATE
@@ -27,52 +25,105 @@ async function activate(context) {
   // Ensure extension storage exists
   await vscode.workspace.fs.createDirectory(context.globalStorageUri);
 
-  // Views
+  /* ------------------------------------------------------------------------
+     Views
+  ------------------------------------------------------------------------ */
   registerTimelineView(context);
   await registerInstructorMode(context);
   registerWalkthroughView(context);
 
-  // Smoke test
+  /* ------------------------------------------------------------------------
+     Smoke test
+  ------------------------------------------------------------------------ */
   context.subscriptions.push(
     vscode.commands.registerCommand('codetime.test', () => {
       vscode.window.showInformationMessage('CodeTime activated ✔');
     })
   );
 
-  // Open Instructor Mode (brings CodeTime container into view + focuses panel)
+  /* ------------------------------------------------------------------------
+     Debug: Git commit integration (Sprint 4)
+  ------------------------------------------------------------------------ */
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.debugGitCommits', async () => {
+      try {
+        const repoPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+        if (!repoPath) {
+          vscode.window.showErrorMessage('CodeTime: No workspace folder open.');
+          return;
+        }
+
+        const isRepo = await gitService.isGitRepo(repoPath);
+        if (!isRepo) {
+          vscode.window.showErrorMessage('CodeTime: This workspace is not a Git repository.');
+          return;
+        }
+
+        const commits = await gitService.getCommitList(repoPath, 10);
+        console.log('CodeTime commits:', commits);
+
+        vscode.window.showInformationMessage(
+          `CodeTime: Loaded ${commits.length} commits (see Debug Console).`
+        );
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `CodeTime Git error: ${err?.message || err}`
+        );
+      }
+    })
+  );
+
+  /* ------------------------------------------------------------------------
+     Open Instructor Mode
+  ------------------------------------------------------------------------ */
   context.subscriptions.push(
     vscode.commands.registerCommand('codetime.openInstructorMode', async () => {
       try {
         await vscode.commands.executeCommand('workbench.view.extension.codetime');
         await vscode.commands.executeCommand('codetime.instructorMode.focus');
       } catch {
-        // If focus command isn't available in older VS Code, at least open the container.
+        // Fallback for older VS Code versions
         await vscode.commands.executeCommand('workbench.view.extension.codetime');
       }
     })
   );
 
-  // Command palette entries (also used by in-panel buttons via messages)
+  /* ------------------------------------------------------------------------
+     Media commands
+  ------------------------------------------------------------------------ */
   context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.uploadAudio', () => uploadAudioCommand(context))
+    vscode.commands.registerCommand('codetime.uploadAudio', () =>
+      uploadAudioCommand(context)
+    )
   );
+
   context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.uploadVideo', () => uploadVideoCommand(context))
+    vscode.commands.registerCommand('codetime.uploadVideo', () =>
+      uploadVideoCommand(context)
+    )
   );
-  // legacy alias
+
+  // Legacy alias
   context.subscriptions.push(
     vscode.commands.registerCommand('codetime.recordVideo', () =>
       vscode.commands.executeCommand('codetime.uploadVideo')
     )
   );
 
-  // Annotations
+  /* ------------------------------------------------------------------------
+     Annotations
+  ------------------------------------------------------------------------ */
   registerAnnotationSupport(context);
+
   if (vscode.window.activeTextEditor) {
     refreshAnnotations(vscode.window.activeTextEditor);
   }
 }
 
+/* ============================================================================
+   DEACTIVATE
+============================================================================ */
 function deactivate() {
   disposeAnnotations();
 }
