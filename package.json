@@ -17,6 +17,7 @@
     "onCommand:codetime.createWalkthrough",
     "onCommand:codetime.addWalkthroughStep",
     "onCommand:codetime.playWalkthrough",
+    "onCommand:codetime.debugGitCommits",
     "onView:codetime.walkthroughView"
   ],
 
@@ -47,6 +48,11 @@
       {
         "command": "codetime.recordVideo",
         "title": "CodeTime: Record Video (legacy alias)",
+        "category": "CodeTime"
+      },
+      {
+        "command": "codetime.debugGitCommits",
+        "title": "CodeTime: Debug Git Commits",
         "category": "CodeTime"
       },
       { "command": "codetime.openInstructorMode", "title": "CodeTime: Open Instructor Mode" },
