@@ -52,7 +52,8 @@ function createWalkthrough(name, description) {
         name,
         description: description || '',
         createdAt: new Date().toISOString(),
-        steps: []
+        steps: [],
+        media: []
     };
 
     all.push(walkthrough);
