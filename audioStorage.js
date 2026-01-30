@@ -1,5 +1,6 @@
 // audioStorage.js — audio directory + upload helpers for CodeTime
 const vscode = require('vscode');
+const { linkUploadedMedia } = require("./services/mediaLinkService");
 
 /* -------------------------------------------------------------------------- */
 /*                          DIRECTORY UTILITIES                               */
@@ -31,6 +32,7 @@ async function listAudioForWebview(webview, dir) {
 /* -------------------------------------------------------------------------- */
 async function uploadAudioCommand(context) {
   const audioDir = await ensureAudioDir(context);
+
   const picks = await vscode.window.showOpenDialog({
     title: 'Select audio files to upload',
     canSelectMany: true,
@@ -38,11 +40,37 @@ async function uploadAudioCommand(context) {
   });
   if (!picks || picks.length === 0) return;
 
+  const repoPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!repoPath) {
+    vscode.window.showErrorMessage('CodeTime: No workspace folder open.');
+    return;
+  }
+
   for (const src of picks) {
     const data = await vscode.workspace.fs.readFile(src);
     const base = src.path.split('/').pop() || 'audio';
     const safe = base.replace(/[^\w\-. ]/g, '_');
-    await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(audioDir, safe), data);
+
+    // Final saved location
+    const destUri = vscode.Uri.joinPath(audioDir, safe);
+
+    // Save the file
+    await vscode.workspace.fs.writeFile(destUri, data);
+
+    // Link the uploaded audio to walkthrough timeline/commit context
+    try {
+      await linkUploadedMedia({
+        repoPath,
+        mediaType: "audio",
+        savedFilePath: destUri.fsPath,
+        defaultTitle: "Audio clip",
+      });
+    } catch (err) {
+      console.error("CodeTime: linkUploadedMedia (audio) failed:", err);
+      vscode.window.showWarningMessage(
+        `CodeTime: Uploaded "${safe}", but linking failed. Check Debug Console.`
+      );
+    }
   }
 
   try {
