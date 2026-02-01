@@ -18,7 +18,9 @@
     "onCommand:codetime.addWalkthroughStep",
     "onCommand:codetime.playWalkthrough",
     "onCommand:codetime.debugGitCommits",
-    "onView:codetime.walkthroughView"
+    "onView:codetime.walkthroughView",
+    "onCommand:codetime.showFileAtCommit",
+    "onCommand:codetime.showDiffForCommit"
   ],
 
   "contributes": {
@@ -53,6 +55,16 @@
       {
         "command": "codetime.debugGitCommits",
         "title": "CodeTime: Debug Git Commits",
+        "category": "CodeTime"
+      },
+      {
+        "command": "codetime.showFileAtCommit",
+        "title": "CodeTime: Show File at Commit",
+        "category": "CodeTime"
+      },
+      {
+        "command": "codetime.showDiffForCommit",
+        "title": "CodeTime: Show Diff for Commit",
         "category": "CodeTime"
       },
       { "command": "codetime.openInstructorMode", "title": "CodeTime: Open Instructor Mode" },

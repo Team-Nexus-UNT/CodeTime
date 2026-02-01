@@ -41,4 +41,29 @@ async function getCommitList(repoPath, limit = 25) {
   });
 }
 
-module.exports = { runGit, isGitRepo, getCommitList };
+async function getFileAtCommit(repoPath, commitHash, fileRelPath) {
+  return runGit(repoPath, ["show", `${commitHash}:${fileRelPath}`]);
+}
+
+async function getParentCommit(repoPath, commitHash) {
+  const out = await runGit(repoPath, ["rev-parse", `${commitHash}^`]);
+  return out.trim();
+}
+
+async function fileExistsAtCommit(repoPath, commitHash, fileRelPath) {
+  try {
+    await runGit(repoPath, ["cat-file", "-e", `${commitHash}:${fileRelPath}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+module.exports = {
+  runGit,
+  isGitRepo,
+  getCommitList,
+  getFileAtCommit,
+  getParentCommit,
+  fileExistsAtCommit
+};

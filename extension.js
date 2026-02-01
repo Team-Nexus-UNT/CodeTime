@@ -17,6 +17,11 @@ const {
 
 // Git integration (Sprint 4)
 const gitService = require('./services/gitService');
+const {
+  initCommitSnapshots,
+  showDiffForCommit,
+  showFileAtCommit
+} = require('./services/commitDiffController');
 
 /* ============================================================================
    ACTIVATE
@@ -24,11 +29,13 @@ const gitService = require('./services/gitService');
 async function activate(context) {
   // Ensure extension storage exists
   await vscode.workspace.fs.createDirectory(context.globalStorageUri);
+  // initialize commit snapshot provider
+  initCommitSnapshots(context, gitService);
 
   /* ------------------------------------------------------------------------
      Views
   ------------------------------------------------------------------------ */
-  registerTimelineView(context);
+  registerTimelineView(context, gitService);
   await registerInstructorMode(context);
   registerWalkthroughView(context);
 
@@ -74,6 +81,27 @@ async function activate(context) {
     })
   );
 
+    /* ------------------------------------------------------------------------
+     FR8 / Diff for commit (Sprint 4)
+  ------------------------------------------------------------------------ */
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.showFileAtCommit', async (commitHash) => {
+      try {
+        await showFileAtCommit(gitService, commitHash);
+      } catch (err) {
+        vscode.window.showErrorMessage(`CodeTime show-file error: ${err?.message || err}`);
+      }
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.showDiffForCommit', async (commitHash) => {
+      try {
+        await showDiffForCommit(gitService, commitHash);
+      } catch (err) {
+        vscode.window.showErrorMessage(`CodeTime diff error: ${err?.message || err}`);
+      }
+    })
+  );
   /* ------------------------------------------------------------------------
      Open Instructor Mode
   ------------------------------------------------------------------------ */
