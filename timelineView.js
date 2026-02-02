@@ -43,6 +43,19 @@ function registerTimelineView(context, gitService) {
             });
             return;
           }
+          
+          if(msg.type === 'scrubTo' && msg.hash) {
+            if(!vscode.window.activeTextEditor) {
+              view.webview.postMessage({
+                type: 'error',
+                message: 'Open a file in the editor first, then use the scrubber.'
+              });
+              return;
+            }
+            await vscode.commands.executeCommand('codetime.showFileAtCommit', msg.hash);
+            return;
+          }
+
           if (
             (msg.type === 'commitSelected' || msg.type === 'diffSelected') &&
             msg.hash &&
@@ -240,7 +253,7 @@ function getHtml() {
       width: 100%;
       height: 10px;
       border-radius: 999px;
-      background: rgba(255,255,255,0,10);
+      background: rgba(255,255,255,0.10);
       border: 1px solid var(--border);
       outline: none;
     }
@@ -266,7 +279,7 @@ function getHtml() {
       box-shadow: 0 0 0 4px var(--accent2);
       cursor: pointer;
     }
-      
+
   </style>
 </head>
 <body>
@@ -278,6 +291,7 @@ function getHtml() {
     <button id="refresh" class="btn btn-red">Refresh</button>
   </div>
 
+  <!-- scrubber controls for navigating through the commits -->
   <div class="scrubberRow">
     <button id="prev" class="btn">Prev</button>
     <input id="scrub" class="range" type="range" min="0" max="0" value="0" />
@@ -297,6 +311,14 @@ function getHtml() {
     const listEl = document.getElementById('list');
     const refreshBtn = document.getElementById('refresh');
 
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const scrubEl = document.getElementById('scrub');
+    const currentEl = document.getElementById('current');
+
+    let commitsCache = [];
+    let activeIndex = 0;
+    
     function escapeHtml(s) {
       return String(s)
         .replaceAll('&', '&amp;')
@@ -327,10 +349,39 @@ function getHtml() {
         '</div>';
     }
 
+    function setCurrentLabel() {
+      if(!commitsCache.length) {
+        currentEl.textContent = '';
+        return;
+      }
+      const c = commitsCache[activeIndex];
+      const shortHash = (c.hash || '').slice(0,7);
+      currentEl.textContent = 'Selected: ' + shortHash + ' — ' + (c.message || '');
+    }
+
+    function setActiveIndex(i) {
+      if(!commitsCache.length) return;
+      activeIndex = Math.max(0, Math.min(i, commitsCache.length -1));
+      scrubEl.value = String(activeIndex);
+      setCurrentLabel();
+
+      const c = commitsCache[activeIndex];
+      if(c?.hash) {
+        vscode.postMessage({type: 'scrubTo', hash: c.hash });
+      }
+    }
+
     function renderCommits(commits) {
       listEl.innerHTML = '';
 
+      commitsCache = commits || [];
+      activeIndex = 0;
+      scrubEl.max = commitsCache.length ? String(commitsCache.length - 1): "0";
+      scrubEl.value = "0";
+      setCurrentLabel();
+
       if (!commits || commits.length === 0) {
+        currentEl.textContent = '';
         setStatus(
           'No commits found.',
           'Try Refresh, or check that this folder has Git history.'
@@ -379,6 +430,8 @@ function getHtml() {
 
         listEl.appendChild(card);
       }
+      setActiveIndex(0);
+
     }
 
     function requestCommits() {
@@ -404,6 +457,13 @@ function getHtml() {
     });
 
     refreshBtn.addEventListener('click', requestCommits);
+
+    prevBtn.addEventListener('click', () => setActiveIndex(activeIndex - 1));
+    nextBtn.addEventListener('click', () => setActiveIndex(activeIndex + 1));
+
+    scrubEl.addEventListener('input', () => {
+      setActiveIndex(Number(scrubEl.value));  
+    });
 
     requestCommits();
   </script>
