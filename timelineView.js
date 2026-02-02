@@ -220,6 +220,53 @@ function getHtml() {
       display: flex;
       gap: 8px;
     }
+
+    .scrubberRow{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 0 0 10px;
+    }
+
+    .scrubLabel{
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .range{
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0,10);
+      border: 1px solid var(--border);
+      outline: none;
+    }
+
+    .range::-webkit-slider-thumb{
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 2px solid rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 4px var(--accent2);
+      cursor: pointer;
+    }
+
+    .range::-moz-range-thumb{
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 2px solid rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 4px var(--accent2);
+      cursor: pointer;
+    }
+      
   </style>
 </head>
 <body>
@@ -230,6 +277,13 @@ function getHtml() {
     </div>
     <button id="refresh" class="btn btn-red">Refresh</button>
   </div>
+
+  <div class="scrubberRow">
+    <button id="prev" class="btn">Prev</button>
+    <input id="scrub" class="range" type="range" min="0" max="0" value="0" />
+    <button id="next" class="btn">Next</button>
+  </div>
+  <div id="current" class="scrubLabel"></div>
 
   <div class="panel">
     <div id="status" class="status"></div>
