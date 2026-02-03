@@ -2,7 +2,6 @@
 const vscode = require('vscode');
 const path = require('path');
 
-
 function registerTimelineView(context, gitService) {
   const provider = {
     async resolveWebviewView(view) {
@@ -47,13 +46,12 @@ function registerTimelineView(context, gitService) {
             return;
           }
           
+          // Scrubber playback handling
           if (msg.type === 'scrubTo' && msg.hash) {
-            // Remember the last REAL source file so scrubbing doesn't require refocusing tabs
             if (vscode.window.activeTextEditor?.document?.uri?.scheme === 'file') {
               globalThis._codetimeSourceFileUri = vscode.window.activeTextEditor.document.uri;
             }
 
-            // If playback tab is active, fall back to the remembered source file
             let sourceUri = globalThis._codetimeSourceFileUri;
 
             if (!sourceUri) {
@@ -72,7 +70,7 @@ function registerTimelineView(context, gitService) {
               return;
             }
 
-            // Create a stable key per file (repo + file path)
+            // Creating a stable key per file 
             const wsFolder = vscode.workspace.getWorkspaceFolder(sourceUri);
             const repoPath =
               wsFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -102,7 +100,6 @@ function registerTimelineView(context, gitService) {
             try {
               contentAtCommit = await gitService.getFileAtCommit(repoPath, msg.hash, fileRelPath);
             } catch (e) {
-              // If file doesn't exist at that commit or git show fails
               contentAtCommit =
                 `// CodeTime Playback\n` +
                 `// File not available at this commit.\n` +

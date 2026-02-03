@@ -63,42 +63,9 @@ async function activate(context) {
     })
   );
 
-    /* ------------------------------------------------------------------------
-     Playback (Step 1 Test Command) REMOVE after playback wired to timeline
+  /* ------------------------------------------------------------------------
+     Playback Scrubber mode
   ------------------------------------------------------------------------ */
-  context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.playback.testOpen', async () => {
-      const uri = vscode.Uri.parse('codetime-playback:/test');
-  
-      // Always set content (no _docs access)
-      playbackProvider.setContent(
-        uri,
-        'CodeTime Playback Mode\n\nStep 1 working.\n'
-      );
-  
-      const doc = await vscode.workspace.openTextDocument(uri);
-      await vscode.window.showTextDocument(doc, { preview: false });
-    })
-  );
-  
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('codetime.playback.testUpdate', async () => {
-      const uri = vscode.Uri.parse('codetime-playback:/test');
-
-      const text =
-        `CodeTime Playback Mode\n\n` +
-        `Updated at: ${new Date().toLocaleTimeString()}\n\n` +
-        `If this updated without opening a new tab, Step 1 is complete ✅`;
-
-      playbackProvider.setContent(uri, text);
-    })
-  );
-
-    /* ------------------------------------------------------------------------
-     Playback (Step 2 Commands)
-  ------------------------------------------------------------------------ */
-  // Stable URI per "session key" so it stays ONE tab
   const getPlaybackUri = (key) =>
     vscode.Uri.from({
       scheme: 'codetime-playback',
@@ -110,7 +77,6 @@ async function activate(context) {
     vscode.commands.registerCommand('codetime.playback.open', async ({ key }) => {
       const uri = getPlaybackUri(key);
 
-      // Put some initial content so tab isn't blank
       playbackProvider.setContent(uri, `Playback Mode\n\nKey: ${key}\n`);
 
       const doc = await vscode.workspace.openTextDocument(uri);

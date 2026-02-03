@@ -1,3 +1,4 @@
+//provides a virtual playback document that updates content in-place
 const vscode = require('vscode');
 
 class PlaybackProvider {

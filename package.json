@@ -68,20 +68,12 @@
         "category": "CodeTime"
       },
       {
-        "command": "codetime.playback.testOpen",
-        "title": "CodeTime: Playback Test Open"
-      },
-      {
-        "command": "codetime.playback.testUpdate",
-        "title": "CodeTime: Playback Test Update"
-      },  
-      {
         "command": "codetime.playback.open",
-        "title": "CodeTime: Playback Open (Internal)"
+        "title": "CodeTime: Playback Open"
       },
       {
         "command": "codetime.playback.setContent",
-        "title": "CodeTime: Playback Set Content (Internal)"
+        "title": "CodeTime: Playback Set Content"
       },      
       { "command": "codetime.openInstructorMode", "title": "CodeTime: Open Instructor Mode" },
       { "command": "codetime.addAnnotation", "title": "CodeTime: Add Annotation" },
