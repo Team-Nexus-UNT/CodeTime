@@ -48,25 +48,32 @@ function registerTimelineView(context, gitService) {
           }
           
           if (msg.type === 'scrubTo' && msg.hash) {
-            // Always target a REAL file editor, not the playback tab
-            let editor = vscode.window.activeTextEditor;
-
-            if (!editor || editor.document.uri.scheme !== 'file') {
-              editor = vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
+            // Remember the last REAL source file so scrubbing doesn't require refocusing tabs
+            if (vscode.window.activeTextEditor?.document?.uri?.scheme === 'file') {
+              globalThis._codetimeSourceFileUri = vscode.window.activeTextEditor.document.uri;
             }
 
-          
-            if (!editor) {
+            // If playback tab is active, fall back to the remembered source file
+            let sourceUri = globalThis._codetimeSourceFileUri;
+
+            if (!sourceUri) {
+              const realEditor = vscode.window.visibleTextEditors.find(
+                e => e.document.uri.scheme === 'file'
+              );
+              if (realEditor) sourceUri = realEditor.document.uri;
+              globalThis._codetimeSourceFileUri = sourceUri;
+            }
+
+            if (!sourceUri) {
               view.webview.postMessage({
                 type: 'error',
-                message: 'Open a real file in the editor first, then use the scrubber.'
+                message: 'Open a real file once, then use the scrubber.'
               });
               return;
             }
-            
-          
+
             // Create a stable key per file (repo + file path)
-            const wsFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+            const wsFolder = vscode.workspace.getWorkspaceFolder(sourceUri);
             const repoPath =
               wsFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
           
@@ -78,7 +85,7 @@ function registerTimelineView(context, gitService) {
               return;
             }
           
-            const filePath = editor.document.uri.fsPath;
+            const filePath = sourceUri.fsPath;
             const key = `${repoPath}::${filePath}`;
           
             // Open playback tab once per key
@@ -107,8 +114,6 @@ function registerTimelineView(context, gitService) {
               content: contentAtCommit
             });
 
-            
-          
             return;
           }
           
