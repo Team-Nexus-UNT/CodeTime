@@ -1,5 +1,7 @@
 // timelineView.js — timeline view provider that is wired to commit comands
 const vscode = require('vscode');
+const path = require('path');
+
 
 function registerTimelineView(context, gitService) {
   const provider = {
@@ -36,6 +38,7 @@ function registerTimelineView(context, gitService) {
             }
 
             const commits = await gitService.getCommitList(repoPath, 25);
+            commits.reverse();
 
             view.webview.postMessage({
               type: 'commits',
@@ -44,17 +47,71 @@ function registerTimelineView(context, gitService) {
             return;
           }
           
-          if(msg.type === 'scrubTo' && msg.hash) {
-            if(!vscode.window.activeTextEditor) {
+          if (msg.type === 'scrubTo' && msg.hash) {
+            // Always target a REAL file editor, not the playback tab
+            let editor = vscode.window.activeTextEditor;
+
+            if (!editor || editor.document.uri.scheme !== 'file') {
+              editor = vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
+            }
+
+          
+            if (!editor) {
               view.webview.postMessage({
                 type: 'error',
-                message: 'Open a file in the editor first, then use the scrubber.'
+                message: 'Open a real file in the editor first, then use the scrubber.'
               });
               return;
             }
-            await vscode.commands.executeCommand('codetime.showFileAtCommit', msg.hash);
+            
+          
+            // Create a stable key per file (repo + file path)
+            const wsFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+            const repoPath =
+              wsFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          
+            if (!repoPath) {
+              view.webview.postMessage({
+                type: 'error',
+                message: 'No workspace folder open.'
+              });
+              return;
+            }
+          
+            const filePath = editor.document.uri.fsPath;
+            const key = `${repoPath}::${filePath}`;
+          
+            // Open playback tab once per key
+            if (!globalThis._codetimePlaybackOpened) globalThis._codetimePlaybackOpened = new Set();
+            if (!globalThis._codetimePlaybackOpened.has(key)) {
+              await vscode.commands.executeCommand('codetime.playback.open', { key });
+              globalThis._codetimePlaybackOpened.add(key);
+            }
+          
+            // repo-relative path for git show
+            const fileRelPath = path.relative(repoPath, filePath).replaceAll('\\', '/');
+
+            let contentAtCommit = '';
+            try {
+              contentAtCommit = await gitService.getFileAtCommit(repoPath, msg.hash, fileRelPath);
+            } catch (e) {
+              // If file doesn't exist at that commit or git show fails
+              contentAtCommit =
+                `// CodeTime Playback\n` +
+                `// File not available at this commit.\n` +
+                `// ${e?.message || e}\n`;
+            }
+
+            await vscode.commands.executeCommand('codetime.playback.setContent', {
+              key,
+              content: contentAtCommit
+            });
+
+            
+          
             return;
           }
+          
 
           if (
             (msg.type === 'commitSelected' || msg.type === 'diffSelected') &&
@@ -318,7 +375,9 @@ function getHtml() {
 
     let commitsCache = [];
     let activeIndex = 0;
-    
+    let userInteracted = false;
+
+
     function escapeHtml(s) {
       return String(s)
         .replaceAll('&', '&amp;')
@@ -366,8 +425,8 @@ function getHtml() {
       setCurrentLabel();
 
       const c = commitsCache[activeIndex];
-      if(c?.hash) {
-        vscode.postMessage({type: 'scrubTo', hash: c.hash });
+      if (c?.hash && userInteracted) {
+        vscode.postMessage({ type: 'scrubTo', hash: c.hash });
       }
     }
 
@@ -458,12 +517,21 @@ function getHtml() {
 
     refreshBtn.addEventListener('click', requestCommits);
 
-    prevBtn.addEventListener('click', () => setActiveIndex(activeIndex - 1));
-    nextBtn.addEventListener('click', () => setActiveIndex(activeIndex + 1));
+    prevBtn.addEventListener('click', () => {
+      userInteracted = true;
+      setActiveIndex(activeIndex - 1);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      userInteracted = true;
+      setActiveIndex(activeIndex + 1);
+    });
 
     scrubEl.addEventListener('input', () => {
-      setActiveIndex(Number(scrubEl.value));  
+    userInteracted = true;
+    setActiveIndex(Number(scrubEl.value));
     });
+
 
     requestCommits();
   </script>
