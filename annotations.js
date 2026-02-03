@@ -66,7 +66,17 @@ async function refreshAnnotations(editor) {
   const document = editor.document;
   const all = await loadAnnotations(document);
   const fileKey = getFileKey(document);
-  const relevant = all.filter(a => a.file === fileKey);
+  const current = globalThis._codetimeCurrentCommitHash ?? null;
+
+  // If no commit selected, display everything
+  const relevant = all.filter(a => {
+    if (a.file !== fileKey) return false;
+    if (!current) return true;
+
+    // Show annotations that match the currently selected commit
+    return a.commitHash === current;
+  });
+
 
   const decorations = relevant.map(ann => {
     const preview = (ann.text || '').trim();
@@ -113,7 +123,8 @@ async function addAnnotationCommand() {
     file: fileKey,
     startLine,
     endLine,
-    text
+    text,
+    commitHash: globalThis._codetimeCurrentCommitHash ?? null
   });
 
   await saveAnnotations(document, all);
@@ -151,6 +162,13 @@ function registerAnnotationSupport(context) {
       if (editor) refreshAnnotations(editor);
     })
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.refreshAnnotations', () => {
+      const ed = vscode.window.activeTextEditor;
+      if (ed) refreshAnnotations(ed);
+    })
+  );
+  
 }
 
 module.exports = {

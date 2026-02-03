@@ -48,6 +48,8 @@ function registerTimelineView(context, gitService) {
           
           // Scrubber playback handling
           if (msg.type === 'scrubTo' && msg.hash) {
+            globalThis._codetimeCurrentCommitHash = msg.hash;
+
             if (vscode.window.activeTextEditor?.document?.uri?.scheme === 'file') {
               globalThis._codetimeSourceFileUri = vscode.window.activeTextEditor.document.uri;
             }
@@ -110,7 +112,10 @@ function registerTimelineView(context, gitService) {
               key,
               content: contentAtCommit
             });
-
+            // Update visible annotations for the currently selected commit
+            if (vscode.window.activeTextEditor) {
+              await vscode.commands.executeCommand('codetime.refreshAnnotations');
+            }
             return;
           }
           
