@@ -17,6 +17,7 @@
     "onCommand:codetime.createWalkthrough",
     "onCommand:codetime.addWalkthroughStep",
     "onCommand:codetime.playWalkthrough",
+    "onCommand:codetime.exportPackage",
     "onCommand:codetime.debugGitCommits",
     "onView:codetime.walkthroughView",
     "onCommand:codetime.showFileAtCommit",
@@ -80,6 +81,7 @@
       { "command": "codetime.createWalkthrough", "title": "CodeTime: Create Walkthrough" },
       { "command": "codetime.addWalkthroughStep", "title": "CodeTime: Add Step to Walkthrough" },
       { "command": "codetime.playWalkthrough", "title": "CodeTime: Play Walkthrough" },
+      { "command": "codetime.exportPackage", "title": "CodeTime: Export Lesson Package" },
       { "command": "codetime.test", "title": "CodeTime: Test Activation", "category": "CodeTime" }
     ]
   }

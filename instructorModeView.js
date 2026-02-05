@@ -27,28 +27,55 @@ function instructorHtml(webview, itemsHtml) {
                style-src 'unsafe-inline' ${webview.cspSource};
                script-src 'unsafe-inline' ${webview.cspSource};">
 <style>
+  :root {
+    --ct-green: #2e7d32;
+    --ct-green-soft: rgba(46,125,50,0.16);
+    --ct-green-border: rgba(46,125,50,0.55);
+  }
   body { font-family:var(--vscode-font-family); padding:10px; color:var(--vscode-foreground); }
-  h2   { margin:0 0 10px; font-size:13px; }
+  h2   { margin:0; font-size:13px; }
   ul   { list-style:none; padding-left:0; }
-  .uploader { border:1px dashed var(--vscode-editorWidget-border);
-              padding:12px; border-radius:8px; margin-bottom:12px; }
-  .row { display:flex; gap:8px; margin-bottom:10px; }
-  button { cursor:pointer; }
+  .header {
+    background: var(--ct-green-soft);
+    border: 1px solid var(--ct-green-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .header-title { display:flex; align-items:center; gap:8px; font-weight:700; }
+  .dot { width:10px; height:10px; border-radius: 999px; background: var(--ct-green); box-shadow: 0 0 0 4px var(--ct-green-soft); }
+  .header-sub { opacity:0.75; font-size: 12px; margin-top: 6px; }
+  .card {
+    border: 1px solid var(--vscode-editorWidget-border);
+    background: rgba(0,0,0,0.03);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .row { display:flex; gap:8px; flex-wrap: wrap; }
+  button { cursor:pointer; border-radius: 8px; padding: 6px 10px; border:1px solid var(--vscode-editorWidget-border); background: var(--vscode-button-secondaryBackground, rgba(0,0,0,0.10)); color: var(--vscode-foreground); }
+  button:hover { filter: brightness(1.06); }
+  button.primary { border-color: var(--ct-green-border); background: var(--ct-green-soft); }
+  button.danger { border-color: rgba(255,82,82,0.35); background: rgba(255,82,82,0.10); }
+  li { padding: 10px; border: 1px solid var(--vscode-editorWidget-border); border-radius: 10px; margin-bottom: 10px; background: rgba(0,0,0,0.02); }
+  li .meta { opacity:0.75; font-size: 12px; margin-top: 6px; }
 </style>
 </head>
 
 <body>
-<h2>Instructor Mode</h2>
-
-<div class="uploader">
-  <div class="row">
-    <button id="uploadAudioBtn">Upload Audio</button>
-    <button id="uploadVideoBtn">Upload Video</button>
-  </div>
-  <p style="opacity:.7;margin:6px 0 0">Files will appear below.</p>
+<div class="header">
+  <div class="header-title"><span class="dot"></span><h2>Instructor Mode</h2></div>
+  <div class="header-sub">Upload media, add annotations, and export a lesson package for Student Mode.</div>
 </div>
 
-<button id="addAnnotationButton">Add Annotation</button>
+<div class="card">
+  <div class="row">
+    <button class="primary" id="uploadAudioBtn">Upload Audio</button>
+    <button class="primary" id="uploadVideoBtn">Upload Video</button>
+    <button id="addAnnotationButton">Add Annotation</button>
+    <button id="exportBtn">Export Lesson</button>
+  </div>
+</div>
 
 <ul id="list">${itemsHtml}</ul>
 
@@ -65,6 +92,10 @@ function instructorHtml(webview, itemsHtml) {
 
   document.getElementById("addAnnotationButton").addEventListener("click", () => {
     vscode.postMessage({ type:"addAnnotation" });
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    vscode.postMessage({ type:"exportLesson" });
   });
 
   window.addEventListener("message", (e) => {
@@ -137,6 +168,8 @@ async function registerInstructorMode(context) {
             await rebuild();
           } else if (msg.type === 'addAnnotation') {
             await vscode.commands.executeCommand('codetime.addAnnotation');
+          } else if (msg.type === 'exportLesson') {
+            await vscode.commands.executeCommand('codetime.exportPackage');
           }
         } catch (e) {
           vscode.window.showErrorMessage('Upload/Delete failed: ' + e.message);

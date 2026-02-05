@@ -24,6 +24,12 @@ const {
   showFileAtCommit
 } = require('./services/commitDiffController');
 
+// Walkthrough storage/actions
+const walkthroughStorage = require('./walkthroughStorage');
+const path = require('path');
+const { exportWalkthroughPackage } = require('./services/exportService');
+
+
 /* ============================================================================
    ACTIVATE
 ============================================================================ */
@@ -62,6 +68,120 @@ async function activate(context) {
       vscode.window.showInformationMessage('CodeTime activated ✔');
     })
   );
+
+
+
+/* ------------------------------------------------------------------------
+   Walkthrough commands
+------------------------------------------------------------------------ */
+context.subscriptions.push(
+  vscode.commands.registerCommand('codetime.addWalkthroughStep', async (walkthroughId) => {
+    try {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage('CodeTime: Open a file to capture a walkthrough step.');
+        return null;
+      }
+
+      const repoPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      const fileAbs = editor.document.uri.fsPath;
+      const fileRel = repoPath ? path.relative(repoPath, fileAbs) : editor.document.fileName;
+      const line = editor.selection.active.line + 1; // 1-based for humans
+
+      // Prefer commit chosen in Timeline; fallback to HEAD
+      let commitHash = globalThis._codetimeCurrentCommitHash;
+      if (!commitHash && repoPath) {
+        const head = await gitService.runGit(repoPath, ['rev-parse', 'HEAD']);
+        commitHash = (head || '').trim();
+      }
+
+      const label = await vscode.window.showInputBox({
+        prompt: 'Step title (optional)',
+        placeHolder: `Example: Explain ${path.basename(fileRel)}`
+      });
+
+      const note = await vscode.window.showInputBox({
+        prompt: 'Step note (optional)',
+        placeHolder: 'What should the student notice here?'
+      });
+
+      const updated = walkthroughStorage.addStepToWalkthrough(walkthroughId, {
+        label: label || `Step @ ${fileRel}:${line}`,
+        file: fileRel,
+        line,
+        commitHash: commitHash || '',
+        note: note || ''
+      });
+
+      if (!updated) {
+        vscode.window.showErrorMessage('CodeTime: Walkthrough not found.');
+        return null;
+      }
+
+      vscode.window.showInformationMessage('CodeTime: Added walkthrough step ✔');
+      return updated;
+    } catch (err) {
+      console.error('codetime.addWalkthroughStep error:', err);
+      vscode.window.showErrorMessage('CodeTime: Failed to add walkthrough step. Check Dev Tools console.');
+      return null;
+    }
+  })
+);
+
+context.subscriptions.push(
+  vscode.commands.registerCommand('codetime.playWalkthrough', async (walkthroughId) => {
+    try {
+      const wt = walkthroughStorage.getWalkthroughById(walkthroughId);
+      if (!wt) {
+        vscode.window.showErrorMessage('CodeTime: Walkthrough not found.');
+        return;
+      }
+      if (!Array.isArray(wt.steps) || wt.steps.length === 0) {
+        vscode.window.showInformationMessage('CodeTime: This walkthrough has no steps yet.');
+        return;
+      }
+
+      const picked = await vscode.window.showQuickPick(
+        wt.steps.map((s, idx) => ({
+          label: `${idx + 1}. ${s.label || 'Untitled Step'}`,
+          description: s.commitHash ? `commit ${String(s.commitHash).slice(0, 8)}` : '',
+          detail: s.file ? `${s.file}${s.line ? `:${s.line}` : ''}` : '',
+          step: s
+        })),
+        { placeHolder: 'Choose a step to play' }
+      );
+
+      if (!picked) return;
+      const step = picked.step;
+
+      if (step.commitHash) {
+        globalThis._codetimeCurrentCommitHash = step.commitHash;
+        // Open the file snapshot at commit, if we can
+        await vscode.commands.executeCommand('codetime.showFileAtCommit', step.commitHash, step.file);
+      } else if (step.file) {
+        const repoPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const uri = repoPath
+          ? vscode.Uri.file(path.join(repoPath, step.file))
+          : vscode.Uri.file(step.file);
+        const doc = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(doc, { preview: false });
+      }
+
+      // Reveal the line if available
+      const editor = vscode.window.activeTextEditor;
+      if (editor && step.line) {
+        const pos = new vscode.Position(Math.max(0, step.line - 1), 0);
+        editor.selection = new vscode.Selection(pos, pos);
+        editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+      }
+
+      vscode.window.showInformationMessage('CodeTime: Walkthrough step opened ✔');
+    } catch (err) {
+      console.error('codetime.playWalkthrough error:', err);
+      vscode.window.showErrorMessage('CodeTime: Failed to play walkthrough. Check Dev Tools console.');
+    }
+  })
+);
 
   /* ------------------------------------------------------------------------
      Playback Scrubber mode
@@ -177,6 +297,17 @@ async function activate(context) {
     vscode.commands.registerCommand('codetime.uploadVideo', () =>
       uploadVideoCommand(context)
     )
+  );
+
+  // Export: package walkthrough + annotations + media + git bundle (single file)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.exportPackage', async () => {
+      try {
+        await exportWalkthroughPackage();
+      } catch (err) {
+        vscode.window.showErrorMessage(`CodeTime export error: ${err?.message || err}`);
+      }
+    })
   );
 
   // Legacy alias

@@ -82,6 +82,21 @@ function addStepToWalkthrough(walkthroughId, stepInfo) {
     return walkthrough;
 }
 
+// delete a single step from a walkthrough
+function deleteStepFromWalkthrough(walkthroughId, stepId) {
+    const all = loadAllWalkthroughs();
+    const walkthrough = all.find(w => w.id === walkthroughId);
+    if (!walkthrough) return null;
+
+    const before = Array.isArray(walkthrough.steps) ? walkthrough.steps.length : 0;
+    walkthrough.steps = (Array.isArray(walkthrough.steps) ? walkthrough.steps : []).filter(s => s.id !== stepId);
+    const after = walkthrough.steps.length;
+    if (before === after) return walkthrough; // nothing removed
+
+    saveAllWalkthroughs(all);
+    return walkthrough;
+}
+
 // update fields inside a walkthrough (rename, description, steps, etc)
 function updateWalkthrough(walkthroughId, updatedFields) {
     const all = loadAllWalkthroughs();
@@ -102,6 +117,7 @@ function deleteWalkthrough(walkthroughId) {
     const all = loadAllWalkthroughs();
     const filtered = all.filter(w => w.id !== walkthroughId);
     saveAllWalkthroughs(filtered);
+    return filtered.length !== all.length;
 }
 
 // return all walkthroughs
@@ -113,6 +129,7 @@ module.exports = {
     createWalkthrough,
     getWalkthroughById,
     addStepToWalkthrough,
+    deleteStepFromWalkthrough,
     updateWalkthrough,
     deleteWalkthrough,
     getAllWalkthroughs,

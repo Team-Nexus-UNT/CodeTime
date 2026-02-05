@@ -171,10 +171,10 @@ function getHtml() {
       --text: rgba(255,255,255,0.92);
       --muted: rgba(255,255,255,0.65);
 
-      /* red theme accents */
-      --accent: #ff4d4d;
-      --accent2: rgba(255,77,77,0.18);
-      --accentBorder: rgba(255,77,77,0.35);
+      /* CodeTime green accents (match Walkthroughs UI) */
+      --accent: #2e7d32;
+      --accent2: rgba(46,125,50,0.18);
+      --accentBorder: rgba(46,125,50,0.40);
       --shadow: rgba(0,0,0,0.25);
     }
 
@@ -223,10 +223,10 @@ function getHtml() {
 
     .btn-red {
       border-color: var(--accentBorder);
-      background: rgba(255,77,77,0.10);
+      background: rgba(46,125,50,0.10);
     }
     .btn-red:hover {
-      background: rgba(255,77,77,0.16);
+      background: rgba(46,125,50,0.16);
     }
 
     .panel {

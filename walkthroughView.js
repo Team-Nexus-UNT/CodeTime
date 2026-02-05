@@ -173,10 +173,44 @@ function getWalkthroughHtml(webview) {
 
     .wt-card {
       cursor: pointer;
+      position: relative;
+      padding-right: 40px;
     }
 
     .wt-card:hover {
       background: rgba(255, 255, 255, 0.04);
+    }
+
+    .icon-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.10);
+      color: var(--vscode-foreground);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .icon-btn:hover { background: rgba(255,255,255,0.06); }
+
+    .icon-btn.danger {
+      border-color: rgba(255, 82, 82, 0.35);
+      background: rgba(255, 82, 82, 0.10);
+    }
+    .icon-btn.danger:hover { background: rgba(255, 82, 82, 0.16); }
+
+    .step-row {
+      position: relative;
+      padding-right: 40px;
+    }
+
+    .step-delete {
+      position: absolute;
+      top: 10px;
+      right: 10px;
     }
 
     /* detail view */
@@ -337,6 +371,7 @@ function getWalkthroughHtml(webview) {
 
         return \`
           <li class="wt-card" data-id="\${w.id}">
+            <button class="icon-btn danger" data-delete-wt="\${w.id}" title="Delete walkthrough">🗑</button>
             <div class="wt-title">\${w.name || '(untitled walkthrough)'}</div>
             <div class="wt-meta">
               \${created ? 'Created: ' + created : ''} 
@@ -377,7 +412,8 @@ function getWalkthroughHtml(webview) {
           const note = (step.note || '').trim();
 
           return \`
-            <li>
+            <li class="step-row" data-step-id="\${step.id}">
+              <button class="icon-btn danger step-delete" data-delete-step="\${step.id}" title="Delete step">🗑</button>
               <div class="wt-title">\${label}</div>
               <div class="wt-meta">\${file} \${line !== '' ? '• line ' + line : ''}</div>
               \${note ? '<div class="wt-desc">' + note + '</div>' : ''}
@@ -391,6 +427,13 @@ function getWalkthroughHtml(webview) {
 
     // click on a walkthrough in the list
     listEl.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('[data-delete-wt]');
+      if (delBtn) {
+        e.stopPropagation();
+        const id = delBtn.getAttribute('data-delete-wt');
+        vscode.postMessage({ type: 'deleteWalkthrough', walkthroughId: id });
+        return;
+      }
       const card = e.target.closest('.wt-card');
       if (!card) return;
       const id = card.getAttribute('data-id');
@@ -400,6 +443,15 @@ function getWalkthroughHtml(webview) {
         type: 'selectWalkthrough',
         id
       });
+    });
+
+    // delete step clicks
+    detailSteps.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-delete-step]');
+      if (!del) return;
+      const stepId = del.getAttribute('data-delete-step');
+      if (!currentWalkthroughId || !stepId) return;
+      vscode.postMessage({ type: 'deleteStep', walkthroughId: currentWalkthroughId, stepId });
     });
 
     // back button
@@ -494,7 +546,7 @@ function registerWalkthroughView(context) {
       }
 
       // handle messages from ui
-      view.webview.onDidReceiveMessage((msg) => {
+      view.webview.onDidReceiveMessage(async (msg) => {
         try {
           if (msg?.type === 'ready') {
             postAll('init');
@@ -519,16 +571,42 @@ function registerWalkthroughView(context) {
               payload: { walkthrough: wt }
             });
           } else if (msg?.type === 'addStepClicked') {
-            // pass walkthrough id to command
+            // pass walkthrough id to command and refresh selected walkthrough
             vscode.commands.executeCommand(
               'codetime.addWalkthroughStep',
               msg.walkthroughId
-            );
+            ).then((updatedWalkthrough) => {
+              if (updatedWalkthrough) {
+                view.webview.postMessage({
+                  type: 'openWalkthrough',
+                  payload: { walkthrough: updatedWalkthrough }
+                });
+              } else {
+                postAll('updatedWalkthroughs');
+              }
+            });
           } else if (msg?.type === 'playClicked') {
             vscode.commands.executeCommand(
               'codetime.playWalkthrough',
               msg.walkthroughId
             );
+          } else if (msg?.type === 'deleteWalkthrough') {
+            const ok = await vscode.window.showWarningMessage(
+              'Delete this walkthrough? This cannot be undone.',
+              { modal: true },
+              'Delete'
+            );
+            if (ok !== 'Delete') return;
+            walkthroughStorage.deleteWalkthrough(msg.walkthroughId);
+            postAll('updatedWalkthroughs');
+            // If user was viewing this walkthrough, kick them back to list
+            view.webview.postMessage({ type: 'openWalkthrough', payload: { walkthrough: null } });
+          } else if (msg?.type === 'deleteStep') {
+            const updated = walkthroughStorage.deleteStepFromWalkthrough(msg.walkthroughId, msg.stepId);
+            if (updated) {
+              view.webview.postMessage({ type: 'openWalkthrough', payload: { walkthrough: updated } });
+            }
+            postAll('updatedWalkthroughs');
           }
         } catch (err) {
           console.error('Walkthrough view error:', err);
