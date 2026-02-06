@@ -1,9 +1,15 @@
 # CodeTime - Team Nexus
-CSCE 4901.003 Capstone Computer Science Project at UNT
-CodeTime – Team Nexus
-
 CSCE 4901.003 – Capstone Computer Science Project
 University of North Texas
+
+# Team Nexus Members
+Ethan Kilpatrick
+
+Nur Mahi
+
+Linal Lad
+
+Emmitt Singh
 
 # Overview
 
@@ -13,38 +19,57 @@ The core goal of CodeTime is to bridge the gap between watching code and underst
 # Key Concepts
 
 CodeTime operates in two modes, both accessible through the VS Code extension:
+
 **Instructor Mode**
+
 Used to create instructional walkthroughs.
+
 Instructors can:
+
 Record code timelines based on file changes and Git commits
+
 Capture audio and video narration
+
 Add inline annotations to specific lines of code
+
 Associate recordings and annotations with exact points on the timeline
+
 Export the completed walkthrough into a distributable file
 
+
 **Student Mode**
+
 Used to consume instructional walkthroughs.
+
 Students can:
+
 Import walkthrough files created in Instructor Mode
+
 Replay the code timeline step-by-step
+
 View synchronized code, audio, video, and annotations
+
 Navigate freely through the timeline (play, pause, rewind, fast-forward)
+
 Ask an integrated LLM assistant questions about the code at the current timeline position
+
 View content in read-only mode (no editing allowed)
 
 # Installation & Development
 Prerequisites:
-Visual Studio Code
-Node.js
-Git
-Run in Development Mode
-Clone the repository
-Open the project in VS Code
-Run npm install
-Press F5 to launch the Extension Development Host
 
-# Team Nexus Members
-Ethan Kilpatrick
-Nur Mahi
-Linal Lad
-Emmitt Singh
+Visual Studio Code
+
+Node.js
+
+Git
+
+Run in Development Mode
+
+Clone the repository
+
+Open the project in VS Code
+
+Run npm install
+
+Press F5 to launch the Extension Development Host
