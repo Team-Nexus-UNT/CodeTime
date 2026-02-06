@@ -3,13 +3,7 @@ CSCE 4901.003 – Capstone Computer Science Project
 University of North Texas
 
 # Team Nexus Members
-Ethan Kilpatrick
-
-Nur Mahi
-
-Linal Lad
-
-Emmitt Singh
+Ethan Kilpatrick, Nur Mahi, Linal Lad, Emmitt Singh
 
 # Overview
 
