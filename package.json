@@ -12,71 +12,84 @@
     "onCommand:codetime.uploadVideo",
     "onCommand:codetime.recordVideo",
     "onCommand:codetime.test",
-    "onCommand:codetime.openInstructorMode",
     "onCommand:codetime.addAnnotation",
     "onCommand:codetime.createWalkthrough",
     "onCommand:codetime.addWalkthroughStep",
     "onCommand:codetime.playWalkthrough",
     "onCommand:codetime.exportPackage",
     "onCommand:codetime.debugGitCommits",
-    "onView:codetime.walkthroughView",
     "onCommand:codetime.showFileAtCommit",
-    "onCommand:codetime.showDiffForCommit"
+    "onCommand:codetime.showDiffForCommit",
+    "onCommand:codetime.chooseInstructor",
+    "onCommand:codetime.chooseStudent",
+    "onCommand:codetime.backToHome",
+
+    "onView:codetime.homeView",
+    "onView:codetime.student.home",
+    "onView:codetime.instructor.dashboard"
   ],
 
   "contributes": {
     "viewsContainers": {
       "activitybar": [
-        { "id": "codetime", "title": "CodeTime", "icon": "media/codetime.png" }
+        {
+          "id": "codetimeHome",
+          "title": "CodeTime",
+          "icon": "media/codetime.png"
+        },
+        {
+          "id": "codetimeStudent",
+          "title": "Student",
+          "icon": "media/codetime.png",
+          "when": "codetime.mode == 'student'"
+        },
+        {
+          "id": "codetimeInstructor",
+          "title": "Instructor",
+          "icon": "media/codetime.png",
+          "when": "codetime.mode == 'instructor'"
+        }
       ]
     },
+
     "views": {
-      "codetime": [
-        { "id": "codetime.timelineView", "name": "Timeline", "type": "webview", "icon": "media/codetime.png" },
-        { "id": "codetime.instructorMode", "name": "Instructor Mode", "type": "webview", "icon": "media/codetime.png" },
-        { "id": "codetime.walkthroughView", "name": "Walkthroughs", "type": "webview", "icon": "media/codetime.png" }
+      "codetimeHome": [
+        {
+          "id": "codetime.homeView",
+          "name": "Home",
+          "type": "webview"
+        }
+      ],
+
+      "codetimeStudent": [
+        {
+          "id": "codetime.student.home",
+          "name": "Student",
+          "type": "webview"
+        }
+      ],
+
+      "codetimeInstructor": [
+        {
+          "id": "codetime.instructor.dashboard",
+          "name": "Dashboard",
+          "type": "webview"
+        }
       ]
     },
+
     "commands": [
-      {
-        "command": "codetime.uploadAudio",
-        "title": "CodeTime: Upload Audio Clip",
-        "category": "CodeTime"
-      },
-      {
-        "command": "codetime.uploadVideo",
-        "title": "CodeTime: Upload Video",
-        "category": "CodeTime"
-      },
-      {
-        "command": "codetime.recordVideo",
-        "title": "CodeTime: Record Video (legacy alias)",
-        "category": "CodeTime"
-      },
-      {
-        "command": "codetime.debugGitCommits",
-        "title": "CodeTime: Debug Git Commits",
-        "category": "CodeTime"
-      },
-      {
-        "command": "codetime.showFileAtCommit",
-        "title": "CodeTime: Show File at Commit",
-        "category": "CodeTime"
-      },
-      {
-        "command": "codetime.showDiffForCommit",
-        "title": "CodeTime: Show Diff for Commit",
-        "category": "CodeTime"
-      },
-      {
-        "command": "codetime.playback.open",
-        "title": "CodeTime: Playback Open"
-      },
-      {
-        "command": "codetime.playback.setContent",
-        "title": "CodeTime: Playback Set Content"
-      },      
-      { "command": "codetime.openInstructorMode", "title": "CodeTime: Open Instructor Mode" },
+      { "command": "codetime.uploadAudio", "title": "CodeTime: Upload Audio Clip", "category": "CodeTime" },
+      { "command": "codetime.uploadVideo", "title": "CodeTime: Upload Video", "category": "CodeTime" },
+      { "command": "codetime.recordVideo", "title": "CodeTime: Record Video (legacy alias)", "category": "CodeTime" },
+      { "command": "codetime.debugGitCommits", "title": "CodeTime: Debug Git Commits", "category": "CodeTime" },
+      { "command": "codetime.showFileAtCommit", "title": "CodeTime: Show File at Commit", "category": "CodeTime" },
+      { "command": "codetime.showDiffForCommit", "title": "CodeTime: Show Diff for Commit", "category": "CodeTime" },
+      { "command": "codetime.playback.open", "title": "CodeTime: Playback Open" },
+      { "command": "codetime.playback.setContent", "title": "CodeTime: Playback Set Content" },
+      { "command": "codetime.chooseInstructor", "title": "CodeTime: Instructor Mode" },
+      { "command": "codetime.chooseStudent", "title": "CodeTime: Student Mode" },
+      { "command": "codetime.backToHome", "title": "CodeTime: Back to Home" },
       { "command": "codetime.addAnnotation", "title": "CodeTime: Add Annotation" },
       { "command": "codetime.createWalkthrough", "title": "CodeTime: Create Walkthrough" },
       { "command": "codetime.addWalkthroughStep", "title": "CodeTime: Add Step to Walkthrough" },

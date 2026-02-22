@@ -6,6 +6,9 @@ const { registerWalkthroughView } = require('./walkthroughView');
 const { registerTimelineView } = require('./timelineView');
 const { registerInstructorMode } = require('./instructorModeView');
 const { PlaybackProvider } = require('./services/playbackProvider');
+const HomeViewProvider = require('./homeView');
+const InstructorDashboardViewProvider = require('./instructorDashboardView');
+const StudentHomeViewProvider = require('./studentHomeView');
 
 // Feature modules
 const { uploadAudioCommand } = require('./audioStorage');
@@ -39,6 +42,40 @@ async function activate(context) {
   // initialize commit snapshot provider
   initCommitSnapshots(context, gitService);
 
+
+// sprint 5
+const setMode = async (mode) => {
+  await context.globalState.update("codetime.mode", mode);
+  await vscode.commands.executeCommand("setContext", "codetime.mode", mode);
+};
+
+await setMode("none");
+
+context.subscriptions.push(
+  vscode.commands.registerCommand("codetime.chooseInstructor", async () => {
+    await setMode("instructor");
+    await vscode.commands.executeCommand("workbench.view.extension.codetimeInstructor");
+    try { await vscode.commands.executeCommand("codetime.instructor.dashboard.focus"); } catch {}
+  })
+);
+
+context.subscriptions.push(
+  vscode.commands.registerCommand("codetime.chooseStudent", async () => {
+    await setMode("student");
+    await vscode.commands.executeCommand("workbench.view.extension.codetimeStudent");
+    try { await vscode.commands.executeCommand("codetime.student.home.focus"); } catch {}
+  })
+);
+
+context.subscriptions.push(
+  vscode.commands.registerCommand("codetime.backToHome", async () => {
+    await setMode("none");
+    await vscode.commands.executeCommand("workbench.view.extension.codetimeHome");
+    try { await vscode.commands.executeCommand("codetime.homeView.focus"); } catch {}
+  })
+);
+
+
   /* ------------------------------------------------------------------------
      Playback Provider 
   ------------------------------------------------------------------------ */
@@ -51,14 +88,39 @@ async function activate(context) {
     )
   );
 
+  //Home View
+  context.subscriptions.push(
+  vscode.window.registerWebviewViewProvider(
+    'codetime.homeView',
+    new HomeViewProvider(context)
+  )
+);
+
+  //Instructor View
+context.subscriptions.push(
+  vscode.window.registerWebviewViewProvider(
+    'codetime.instructor.dashboard',
+    new InstructorDashboardViewProvider(context, gitService)
+  )
+);
+
+  //Student View
+context.subscriptions.push(
+  vscode.window.registerWebviewViewProvider(
+    'codetime.student.home',
+    new StudentHomeViewProvider(context)
+  )
+);
 
 
   /* ------------------------------------------------------------------------
      Views
   ------------------------------------------------------------------------ */
-  registerTimelineView(context, gitService);
-  await registerInstructorMode(context);
-  registerWalkthroughView(context);
+  // registerTimelineView(context, gitService);
+  //await registerInstructorMode(context);
+  //registerWalkthroughView(context);
+
+  // legacy views disabled (now consolidated into dashboard shell)
 
   /* ------------------------------------------------------------------------
      Smoke test
@@ -272,7 +334,14 @@ context.subscriptions.push(
   /* ------------------------------------------------------------------------
      Open Instructor Mode
   ------------------------------------------------------------------------ */
-  context.subscriptions.push(
+ //sprint 5 change
+    context.subscriptions.push(
+  vscode.commands.registerCommand('codetime.openInstructorMode', async () => {
+    await vscode.commands.executeCommand('codetime.chooseInstructor');
+  })
+);
+
+  /* context.subscriptions.push(
     vscode.commands.registerCommand('codetime.openInstructorMode', async () => {
       try {
         await vscode.commands.executeCommand('workbench.view.extension.codetime');
@@ -282,7 +351,7 @@ context.subscriptions.push(
         await vscode.commands.executeCommand('workbench.view.extension.codetime');
       }
     })
-  );
+  ); */
 
   /* ------------------------------------------------------------------------
      Media commands
