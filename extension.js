@@ -8,7 +8,7 @@ const { registerInstructorMode } = require('./instructorModeView');
 const { PlaybackProvider } = require('./services/playbackProvider');
 const HomeViewProvider = require('./homeView');
 const InstructorDashboardViewProvider = require('./instructorDashboardView');
-const StudentHomeViewProvider = require('./studentHomeView');
+const { StudentHomeViewProvider } = require('./studentHomeView');
 
 // Feature modules
 const { uploadAudioCommand } = require('./audioStorage');
@@ -63,7 +63,7 @@ context.subscriptions.push(
   vscode.commands.registerCommand("codetime.chooseStudent", async () => {
     await setMode("student");
     await vscode.commands.executeCommand("workbench.view.extension.codetimeStudent");
-    try { await vscode.commands.executeCommand("codetime.student.home.focus"); } catch {}
+    try { await vscode.commands.executeCommand("codetime.studentHomeView.focus"); } catch {}
   })
 );
 
@@ -107,7 +107,7 @@ context.subscriptions.push(
   //Student View
 context.subscriptions.push(
   vscode.window.registerWebviewViewProvider(
-    'codetime.student.home',
+    'codetime.studentHomeView',
     new StudentHomeViewProvider(context)
   )
 );
@@ -278,6 +278,79 @@ context.subscriptions.push(
 
 
   /* ------------------------------------------------------------------------
+
+  /* ------------------------------------------------------------------------
+     Student: Open snapshot from an imported lesson repo (read-only)
+  ------------------------------------------------------------------------ */
+  const guessLanguageId = (fileRelPath) => {
+    const lower = (fileRelPath || "").toLowerCase();
+    const ext = lower.includes(".") ? lower.split(".").pop() : "";
+    const map = {
+      js: "javascript",
+      jsx: "javascriptreact",
+      ts: "typescript",
+      tsx: "typescriptreact",
+      html: "html",
+      css: "css",
+      json: "json",
+      md: "markdown",
+      py: "python",
+      java: "java",
+      c: "c",
+      h: "c",
+      cpp: "cpp",
+      hpp: "cpp",
+      cs: "csharp",
+      go: "go",
+      rs: "rust",
+      php: "php",
+      xml: "xml",
+      yml: "yaml",
+      yaml: "yaml",
+      sh: "shellscript"
+    };
+    return map[ext] || "plaintext";
+  };
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.student.openSnapshot', async ({ repoPath, commitHash, fileRelPath, key, userInitiated }) => {
+      if (!repoPath || !commitHash || !fileRelPath || !key) {
+        vscode.window.showErrorMessage('CodeTime Student: missing repoPath/commitHash/fileRelPath/key');
+        return;
+      }
+
+      const isRepo = await gitService.isGitRepo(repoPath);
+      if (!isRepo) {
+        vscode.window.showErrorMessage('CodeTime Student: lesson repo is not a valid Git repo.');
+        return;
+      }
+
+      const exists = await gitService.fileExistsAtCommit(repoPath, commitHash, fileRelPath);
+      if (!exists) {
+        // This is normal during commit playback: many commits won't contain the selected file.
+        // Only notify when the user explicitly clicked "Open Code".
+        if (userInitiated) {
+          vscode.window.showInformationMessage("This file does not exist in the selected commit.");
+        }
+        return;
+      }
+
+      const content = await gitService.getFileAtCommit(repoPath, commitHash, fileRelPath);
+
+      // Use playbackProvider virtual doc for read-only viewing
+      const uri = vscode.Uri.from({ scheme: 'codetime-playback', path: key });
+      playbackProvider.setContent(uri, content);
+
+      const doc = await vscode.workspace.openTextDocument(uri);
+      const editor = await vscode.window.showTextDocument(doc, { preview: false });
+
+      const lang = guessLanguageId(fileRelPath);
+      try { await vscode.languages.setTextDocumentLanguage(doc, lang); } catch {}
+
+      return { uri: uri.toString() };
+    })
+  );
+  /* ------------------------------------------------------------------------
      Debug: Git commit integration (Sprint 4)
   ------------------------------------------------------------------------ */
   context.subscriptions.push(
@@ -379,11 +452,30 @@ context.subscriptions.push(
     })
   );
 
-  // Legacy alias
+
+  /* ------------------------------------------------------------------------
+     Legacy alias
+  ------------------------------------------------------------------------ */
   context.subscriptions.push(
     vscode.commands.registerCommand('codetime.recordVideo', () =>
       vscode.commands.executeCommand('codetime.uploadVideo')
     )
+  );
+
+  /* ------------------------------------------------------------------------
+     Student Mode helper commands
+  ------------------------------------------------------------------------ */
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.openStudentMode', async () => {
+      await vscode.commands.executeCommand('codetime.chooseStudent');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codetime.importStudentLesson', async () => {
+      await vscode.commands.executeCommand('codetime.chooseStudent');
+      vscode.window.showInformationMessage("Use the 'Import Lesson' button in the Student view.");
+    })
   );
 
   /* ------------------------------------------------------------------------
@@ -396,11 +488,10 @@ context.subscriptions.push(
   }
 }
 
-/* ============================================================================
-   DEACTIVATE
-============================================================================ */
 function deactivate() {
-  disposeAnnotations();
+  try {
+    disposeAnnotations();
+  } catch (_) {}
 }
 
 module.exports = { activate, deactivate };

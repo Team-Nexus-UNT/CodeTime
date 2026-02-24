@@ -23,10 +23,13 @@
     "onCommand:codetime.chooseInstructor",
     "onCommand:codetime.chooseStudent",
     "onCommand:codetime.backToHome",
+    "onCommand:codetime.importStudentLesson",
+    "onCommand:codetime.openStudentMode",
 
     "onView:codetime.homeView",
     "onView:codetime.student.home",
-    "onView:codetime.instructor.dashboard"
+    "onView:codetime.instructor.dashboard",
+    "onView:codetime.studentHomeView"
   ],
 
   "contributes": {
@@ -63,11 +66,11 @@
 
       "codetimeStudent": [
         {
-          "id": "codetime.student.home",
+          "id": "codetime.studentHomeView",
           "name": "Student",
           "type": "webview"
         }
-      ],
+        ],
 
       "codetimeInstructor": [
         {
@@ -95,6 +98,9 @@
       { "command": "codetime.addWalkthroughStep", "title": "CodeTime: Add Step to Walkthrough" },
       { "command": "codetime.playWalkthrough", "title": "CodeTime: Play Walkthrough" },
       { "command": "codetime.exportPackage", "title": "CodeTime: Export Lesson Package" },
+      { "command": "codetime.openStudentMode", "title": "CodeTime: Open Student Mode", "category": "CodeTime" },
+      { "command": "codetime.importStudentLesson", "title": "CodeTime: Import Lesson Package (Student)", "category": "CodeTime" },
+
       { "command": "codetime.test", "title": "CodeTime: Test Activation", "category": "CodeTime" }
     ]
   }
