@@ -12,6 +12,7 @@ const {
 } = require("./services/studentImportService");
 
 const gitService = require("./services/gitService");
+const { askLlm } = require("./services/llmService");
 
 /**
  * Normalize a stored file path (often absolute from Instructor machine) into a
@@ -195,6 +196,97 @@ class StudentHomeViewProvider {
 
           case "student.backHome": {
             await vscode.commands.executeCommand("codetime.backToHome");
+            break;
+          }
+           
+          case "student.llm.ask": {
+            try {
+              const scope = {
+                lessonId: this.state.activeLessonId,
+                repoPath: this.state.repoPath,
+                allowedFiles: this.state.files,
+                commit: this.getCurrentCommit(),
+                commitMeta: this.state.commits[this.state.commitIndex],
+                activeFile: this.state.activeFile
+              };
+          
+              let fullText = "";
+              let selectionObj = null;
+          
+              // 1️⃣ Try active snapshot editor first
+              const editor = vscode.window.activeTextEditor;
+              if (editor && editor.document?.uri?.scheme === "codetime-playback") {
+                fullText = editor.document.getText();
+          
+                if (editor.selection && !editor.selection.isEmpty) {
+                  selectionObj = {
+                    startLine: editor.selection.start.line + 1,
+                    endLine: editor.selection.end.line + 1,
+                    text: editor.document.getText(editor.selection)
+                  };
+                }
+              }
+          
+              // 2️⃣ Fallback: fetch snapshot directly from git
+              if (!fullText) {
+                const repoPath = this.state.repoPath;
+                const commitHash = this.getCurrentCommit();
+                const fileRelPath = this.state.activeFile;
+          
+                if (repoPath && commitHash && fileRelPath) {
+                  const gitText = await gitService.getFileAtCommit(
+                    repoPath,
+                    commitHash,
+                    fileRelPath
+                  );
+                  fullText = gitText || "";
+                }
+              }
+          
+              if (!fullText) {
+                this._view.webview.postMessage({
+                  type: "student.llm.error",
+                  message: "Open the lesson snapshot first."
+                });
+                break;
+              }
+          
+              // Build editor context
+              const editorContext = {
+                fullText,
+                selection: selectionObj
+              };
+          
+              // 🔥 Mode auto-detection
+              const hasSelection = !!editorContext.selection?.text?.trim();
+              const hasQuestion = !!String(msg.question || "").trim();
+          
+              const mode = hasSelection
+                ? (hasQuestion ? "selection_qna" : "selection")
+                : "ask";
+          
+              const question = hasSelection
+                ? (hasQuestion ? msg.question : "Explain the selected lines.")
+                : msg.question;
+          
+              const text = await askLlm({
+                mode,
+                question,
+                scope,
+                editor: editorContext
+              });
+          
+              this._view.webview.postMessage({
+                type: "student.llm.response",
+                text
+              });
+          
+            } catch (err) {
+              this._view.webview.postMessage({
+                type: "student.llm.error",
+                message: err.message
+              });
+            }
             break;
           }
 
@@ -492,6 +584,16 @@ this.state.commits = commits;
       .cardTitle { font-weight: 700; }
       .steps { margin: 8px 0 0 18px; padding: 0; }
       .steps li { margin: 6px 0; }
+
+      @media (max-width: 900px) {
+        .wrap {
+          grid-template-columns: 1fr;
+          height: auto;
+        }
+        .left, .mid, .right {
+          border-right: none;
+        }
+      }
 </style>
 </head>
 <body>
@@ -584,9 +686,9 @@ this.state.commits = commits;
         <div class="h">LLM Assistant</div>
         <div class="muted">Explain code at the current timeline position (placeholder).</div>
         <div style="margin-top:10px;">
-          <input id="llmPrompt" type="text" placeholder="Explain this function..." disabled />
-          <textarea style="margin-top:10px;" disabled>Response will appear here…</textarea>
-          <button class="btn secondary" style="margin-top:10px;" disabled>Insert Explanation as Annotation</button>
+          <input id="llmPrompt" type="text" placeholder="Ask about the current code..." />
+          <textarea id="llmOutput" style="margin-top:10px;" readonly>Response will appear here…</textarea>
+          <button class="btn secondary" style="margin-top:10px;" id="llmAskBtn">Ask</button>
         </div>
       </div>
     </div>
@@ -645,6 +747,36 @@ this.state.commits = commits;
         vscode.postMessage({ type: "student.openAnnotation", annotationId: btn.dataset.annotationId });
       });
     }
+
+    const askBtn = document.getElementById("llmAskBtn");
+    const promptEl = document.getElementById("llmPrompt");
+    const outputEl = document.getElementById("llmOutput");
+
+    if (askBtn) {
+      askBtn.addEventListener("click", () => {
+        const question = (promptEl?.value || "").trim();
+
+        outputEl.value = question ? "Thinking..." : "Analyzing selection...";
+
+        vscode.postMessage({
+          type: "student.llm.ask",
+          question // can be "" now
+        });
+      });
+    }
+
+    window.addEventListener("message", (event) => {
+      const msg = event.data;
+      if (!msg) return;
+
+      if (msg.type === "student.llm.response") {
+        outputEl.value = msg.text || "";
+      }
+
+      if (msg.type === "student.llm.error") {
+        outputEl.value = "Error: " + (msg.message || "Unknown error");
+      }
+    });
   </script>
 </body>
 </html>`;
