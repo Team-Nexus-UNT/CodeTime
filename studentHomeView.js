@@ -213,7 +213,7 @@ class StudentHomeViewProvider {
               let fullText = "";
               let selectionObj = null;
           
-              // 1️⃣ Try active snapshot editor first
+              //Try active snapshot editor first
               const editor = vscode.window.activeTextEditor;
               if (editor && editor.document?.uri?.scheme === "codetime-playback") {
                 fullText = editor.document.getText();
@@ -227,7 +227,7 @@ class StudentHomeViewProvider {
                 }
               }
           
-              // 2️⃣ Fallback: fetch snapshot directly from git
+              // Fallback: fetch snapshot directly from git
               if (!fullText) {
                 const repoPath = this.state.repoPath;
                 const commitHash = this.getCurrentCommit();
@@ -257,17 +257,40 @@ class StudentHomeViewProvider {
                 selection: selectionObj
               };
           
-              // 🔥 Mode auto-detection
               const hasSelection = !!editorContext.selection?.text?.trim();
               const hasQuestion = !!String(msg.question || "").trim();
-          
-              const mode = hasSelection
-                ? (hasQuestion ? "selection_qna" : "selection")
-                : "ask";
-          
-              const question = hasSelection
-                ? (hasQuestion ? msg.question : "Explain the selected lines.")
-                : msg.question;
+              
+              const questionText = String(msg.question || "").toLowerCase();
+
+              const isCommitQuestion =
+                questionText.includes("commit") ||
+                questionText.includes("change") ||
+                questionText.includes("why was this") ||
+                questionText.includes("what changed");
+
+                let mode;
+
+                if (isCommitQuestion) {
+                  mode = "commit";
+                } else if (hasSelection) {
+                  mode = hasQuestion ? "selection_qna" : "selection";
+                } else if (hasQuestion) {
+                  mode = "ask";
+                } else {
+                  mode = "explain_file";
+                }
+
+                let question;
+
+                if (mode === "commit") {
+                  question = msg.question || "Explain what this commit does and why.";
+                } else if (hasSelection) {
+                  question = hasQuestion ? msg.question : "Explain the selected lines.";
+                } else if (hasQuestion) {
+                  question = msg.question;
+                } else {
+                  question = "Explain the current file on screen.";
+                }
           
               const text = await askLlm({
                 mode,
@@ -286,6 +309,15 @@ class StudentHomeViewProvider {
                 type: "student.llm.error",
                 message: err.message
               });
+            }
+            break;
+          }
+
+          case "student.llm.clear": {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+              const pos = editor.selection.active;
+              editor.selection = new vscode.Selection(pos, pos);
             }
             break;
           }
@@ -585,15 +617,6 @@ this.state.commits = commits;
       .steps { margin: 8px 0 0 18px; padding: 0; }
       .steps li { margin: 6px 0; }
 
-      @media (max-width: 900px) {
-        .wrap {
-          grid-template-columns: 1fr;
-          height: auto;
-        }
-        .left, .mid, .right {
-          border-right: none;
-        }
-      }
 </style>
 </head>
 <body>
@@ -689,6 +712,7 @@ this.state.commits = commits;
           <input id="llmPrompt" type="text" placeholder="Ask about the current code..." />
           <textarea id="llmOutput" style="margin-top:10px;" readonly>Response will appear here…</textarea>
           <button class="btn secondary" style="margin-top:10px;" id="llmAskBtn">Ask</button>
+          <button class="btn secondary" style="margin-top:10px;" id="llmClearBtn">Refresh</button>
         </div>
       </div>
     </div>
@@ -777,6 +801,16 @@ this.state.commits = commits;
         outputEl.value = "Error: " + (msg.message || "Unknown error");
       }
     });
+
+    const clearBtn = document.getElementById("llmClearBtn");
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        if (promptEl) promptEl.value = "";
+        if (outputEl) outputEl.value = "Response will appear here…";
+        vscode.postMessage({ type: "student.llm.clear" });
+      });
+    }
   </script>
 </body>
 </html>`;

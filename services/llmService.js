@@ -56,13 +56,23 @@ function buildMessages({ mode, question, scope, editor }) {
 
   const codeText = clampText(editor?.fullText || "", 20000);
 
-  const system =
+    const commitRules =
+    mode === "commit"
+      ? `\nCOMMIT MODE RULES:\n` +
+        `- The user is asking about the CURRENT COMMIT.\n` +
+        `- Use the commit message + the visible code snapshot to explain what likely changed and why.\n` +
+        `- If the commit question cannot be answered from the commit message + code shown, reply: "Not enough information in the loaded lesson to answer that.".\n`
+      : "";
+
+      const baseSystem =
     `You are CodeTime's Student Mode assistant.\n` +
     `CRITICAL RULES:\n` +
     `- Only use the Lesson Context provided. Do NOT assume anything not explicitly shown.\n` +
     `- Only reference files that appear in Allowed Files.\n` +
     `- If the question needs info outside the context, reply: "Not enough information in the loaded lesson to answer that.".\n` +
     `- Be concise but clear.\n`;
+
+  const system = baseSystem + commitRules;
 
   const context =
     `LESSON CONTEXT (authoritative):\n` +
