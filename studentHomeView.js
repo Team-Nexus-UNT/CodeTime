@@ -1,4 +1,3 @@
-
 // studentHomeView.js
 const vscode = require("vscode");
 const path = require("path");
@@ -27,7 +26,9 @@ function normalizeRelFilePath(fp, repoPath) {
 
   // Strip URI prefix if present
   if (p.startsWith("file://")) {
-    try { p = vscode.Uri.parse(p).fsPath; } catch {}
+    try {
+      p = vscode.Uri.parse(p).fsPath;
+    } catch {}
   }
 
   // If it looks like "<something>:<path>" (NOT a Windows drive like "C:\"),
@@ -37,8 +38,6 @@ function normalizeRelFilePath(fp, repoPath) {
     if (!isWindowsDrive) {
       const idx = p.indexOf(":");
       const after = p.slice(idx + 1);
-      // Only strip if the remainder looks like a path
-      // NOTE: backslash must be escaped in JS strings
       if (after.startsWith("/") || after.startsWith("\\") || after.startsWith(".")) {
         p = after;
       }
@@ -98,6 +97,10 @@ class StudentHomeViewProvider {
 
       walkthroughs: [],
       annotations: [],
+
+      // ✅ FR17: search fields
+      walkthroughSearchTitle: "",
+      walkthroughSearchKeyword: "",
     };
   }
 
@@ -133,7 +136,6 @@ class StudentHomeViewProvider {
 
             const ok = await deleteImportedStudentLesson(this.context, lessonId);
             if (ok) {
-              // pick next lesson if any
               await this.refreshLessons();
               if (this.state.lessons.length) {
                 this.state.activeLessonId = this.state.lessons[0].id;
@@ -153,7 +155,6 @@ class StudentHomeViewProvider {
             break;
           }
 
-
           case "student.setActiveLesson": {
             await this.loadLesson(msg.lessonId);
             break;
@@ -165,12 +166,61 @@ class StudentHomeViewProvider {
             break;
           }
 
+          // ✅ FR17: Search handler (title + keyword)
+          case "student.walkthrough.search": {
+            this.state.walkthroughSearchTitle = String(msg.title || "");
+            this.state.walkthroughSearchKeyword = String(msg.keyword || "");
+            this.render();
+            break;
+          }
+
+          // ✅ FR17: Open/jump to a walkthrough step
+          case "student.walkthrough.openStep": {
+            const step = msg.step;
+            if (!step) break;
+
+            // 1) pick commit from step or fallback to current commit
+            const stepCommit = step.commitHash || step.commit || step.sha || this.getCurrentCommit();
+
+            // 2) move timeline slider to that commit (if it exists in commits list)
+            if (stepCommit && Array.isArray(this.state.commits) && this.state.commits.length) {
+              const idx = this.state.commits.findIndex((c) => c.hash === stepCommit);
+              if (idx >= 0) this.state.commitIndex = idx;
+            }
+
+            // 3) choose the step file
+            const fp = step.filePath || step.file || step.path;
+            if (fp) this.state.activeFile = fp;
+
+            // 4) re-render & open snapshot
+            this.render();
+            await this.openCurrentSnapshot(true);
+
+            // 5) jump to the line (if given)
+            const ln =
+              typeof step.line === "number"
+                ? step.line
+                : typeof step.lineNumber === "number"
+                ? step.lineNumber
+                : null;
+
+            if (ln !== null) {
+              const editor = vscode.window.activeTextEditor;
+              if (editor) {
+                // NOTE: if your export uses 1-based lines, change `ln` to `ln - 1`
+                const pos = new vscode.Position(Math.max(0, ln), 0);
+                editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+                editor.selection = new vscode.Selection(pos, pos);
+              }
+            }
+
+            break;
+          }
+
           case "student.setFile": {
             this.state.activeFile = msg.fileRelPath || null;
-            // reset commit index if out of range
             if (this.state.commitIndex >= this.state.commits.length) this.state.commitIndex = 0;
             this.render();
-            // auto open current snapshot
             await this.openCurrentSnapshot(false);
             break;
           }
@@ -178,7 +228,10 @@ class StudentHomeViewProvider {
           case "student.setCommitIndex": {
             const idx = Number(msg.index);
             if (!Number.isFinite(idx)) return;
-            this.state.commitIndex = Math.max(0, Math.min(idx, Math.max(0, this.state.commits.length - 1)));
+            this.state.commitIndex = Math.max(
+              0,
+              Math.min(idx, Math.max(0, this.state.commits.length - 1))
+            );
             this.render();
             await this.openCurrentSnapshot(false);
             break;
@@ -198,7 +251,7 @@ class StudentHomeViewProvider {
             await vscode.commands.executeCommand("codetime.backToHome");
             break;
           }
-           
+
           case "student.llm.ask": {
             try {
               const scope = {
@@ -207,59 +260,51 @@ class StudentHomeViewProvider {
                 allowedFiles: this.state.files,
                 commit: this.getCurrentCommit(),
                 commitMeta: this.state.commits[this.state.commitIndex],
-                activeFile: this.state.activeFile
+                activeFile: this.state.activeFile,
               };
-          
+
               let fullText = "";
               let selectionObj = null;
-          
-              //Try active snapshot editor first
+
+              // Try active snapshot editor first
               const editor = vscode.window.activeTextEditor;
               if (editor && editor.document?.uri?.scheme === "codetime-playback") {
                 fullText = editor.document.getText();
-          
+
                 if (editor.selection && !editor.selection.isEmpty) {
                   selectionObj = {
                     startLine: editor.selection.start.line + 1,
                     endLine: editor.selection.end.line + 1,
-                    text: editor.document.getText(editor.selection)
+                    text: editor.document.getText(editor.selection),
                   };
                 }
               }
-          
+
               // Fallback: fetch snapshot directly from git
               if (!fullText) {
                 const repoPath = this.state.repoPath;
                 const commitHash = this.getCurrentCommit();
                 const fileRelPath = this.state.activeFile;
-          
+
                 if (repoPath && commitHash && fileRelPath) {
-                  const gitText = await gitService.getFileAtCommit(
-                    repoPath,
-                    commitHash,
-                    fileRelPath
-                  );
+                  const gitText = await gitService.getFileAtCommit(repoPath, commitHash, fileRelPath);
                   fullText = gitText || "";
                 }
               }
-          
+
               if (!fullText) {
                 this._view.webview.postMessage({
                   type: "student.llm.error",
-                  message: "Open the lesson snapshot first."
+                  message: "Open the lesson snapshot first.",
                 });
                 break;
               }
-          
-              // Build editor context
-              const editorContext = {
-                fullText,
-                selection: selectionObj
-              };
-          
+
+              const editorContext = { fullText, selection: selectionObj };
+
               const hasSelection = !!editorContext.selection?.text?.trim();
               const hasQuestion = !!String(msg.question || "").trim();
-              
+
               const questionText = String(msg.question || "").toLowerCase();
 
               const isCommitQuestion =
@@ -268,46 +313,45 @@ class StudentHomeViewProvider {
                 questionText.includes("why was this") ||
                 questionText.includes("what changed");
 
-                let mode;
+              let mode;
 
-                if (isCommitQuestion) {
-                  mode = "commit";
-                } else if (hasSelection) {
-                  mode = hasQuestion ? "selection_qna" : "selection";
-                } else if (hasQuestion) {
-                  mode = "ask";
-                } else {
-                  mode = "explain_file";
-                }
+              if (isCommitQuestion) {
+                mode = "commit";
+              } else if (hasSelection) {
+                mode = hasQuestion ? "selection_qna" : "selection";
+              } else if (hasQuestion) {
+                mode = "ask";
+              } else {
+                mode = "explain_file";
+              }
 
-                let question;
+              let question;
 
-                if (mode === "commit") {
-                  question = msg.question || "Explain what this commit does and why.";
-                } else if (hasSelection) {
-                  question = hasQuestion ? msg.question : "Explain the selected lines.";
-                } else if (hasQuestion) {
-                  question = msg.question;
-                } else {
-                  question = "Explain the current file on screen.";
-                }
-          
+              if (mode === "commit") {
+                question = msg.question || "Explain what this commit does and why.";
+              } else if (hasSelection) {
+                question = hasQuestion ? msg.question : "Explain the selected lines.";
+              } else if (hasQuestion) {
+                question = msg.question;
+              } else {
+                question = "Explain the current file on screen.";
+              }
+
               const text = await askLlm({
                 mode,
                 question,
                 scope,
-                editor: editorContext
+                editor: editorContext,
               });
-          
+
               this._view.webview.postMessage({
                 type: "student.llm.response",
-                text
+                text,
               });
-          
             } catch (err) {
               this._view.webview.postMessage({
                 type: "student.llm.error",
-                message: err.message
+                message: err.message,
               });
             }
             break;
@@ -380,13 +424,15 @@ class StudentHomeViewProvider {
     this.state.walkthroughs = normalizeWalkthroughs(walkthroughsJson);
     this.state.annotations = normalizeAnnotations(annotationsJson);
 
-    // Normalize file paths to repo-relative (Instructor exports often store absolute paths)
+    // Normalize file paths to repo-relative
     this.state.walkthroughs = (this.state.walkthroughs || []).map((w) => {
-      const steps = Array.isArray(w.steps) ? w.steps.map((st) => {
-        const raw = st.filePath || st.file || st.path;
-        const rel = normalizeRelFilePath(raw, repoPath);
-        return { ...st, filePath: rel || raw };
-      }) : [];
+      const steps = Array.isArray(w.steps)
+        ? w.steps.map((st) => {
+            const raw = st.filePath || st.file || st.path;
+            const rel = normalizeRelFilePath(raw, repoPath);
+            return { ...st, filePath: rel || raw };
+          })
+        : [];
       return { ...w, steps };
     });
 
@@ -395,37 +441,31 @@ class StudentHomeViewProvider {
       return { ...a, filePath: rel || a.filePath };
     });
 
-    // Commit timeline:
-// Prefer full repo history from the bundled lesson repo so playback has all commits.
-// (manifest.referencedCommits may be incomplete depending on how the lesson was exported.)
-let commits = [];
-if (repoPath) {
-  try {
-    commits = await gitService.getCommitList(repoPath, 500);
-  } catch (e) {
-    console.error("CodeTime Student: failed to load commit list", e);
-  }
-}
+    // Commit timeline
+    let commits = [];
+    if (repoPath) {
+      try {
+        commits = await gitService.getCommitList(repoPath, 500);
+      } catch (e) {
+        console.error("CodeTime Student: failed to load commit list", e);
+      }
+    }
 
-// If we have referencedCommits, reorder/filter to that set when it makes sense (optional),
-// but do not reduce the commit count if the repo contains more history.
-const referenced = Array.isArray(manifestJson?.referencedCommits) ? manifestJson.referencedCommits : [];
-if (referenced.length && commits.length) {
-  const set = new Set(referenced);
-  const referencedInRepo = commits.filter((c) => set.has(c.hash));
-  // Only use the referenced subset if it looks like a complete timeline (>= 5 or equals repo length).
-  if (referencedInRepo.length >= 5 || referencedInRepo.length === commits.length) {
-    commits = referencedInRepo;
-  }
-}
+    const referenced = Array.isArray(manifestJson?.referencedCommits) ? manifestJson.referencedCommits : [];
+    if (referenced.length && commits.length) {
+      const set = new Set(referenced);
+      const referencedInRepo = commits.filter((c) => set.has(c.hash));
+      if (referencedInRepo.length >= 5 || referencedInRepo.length === commits.length) {
+        commits = referencedInRepo;
+      }
+    }
 
-this.state.commits = commits;
-
+    this.state.commits = commits;
 
     // Build file list from walkthrough steps + annotations
     const fileSet = new Set();
     for (const w of this.state.walkthroughs) {
-      for (const s of (w.steps || [])) {
+      for (const s of w.steps || []) {
         const fp = s.filePath || s.file || s.path;
         if (fp) fileSet.add(fp);
       }
@@ -477,10 +517,8 @@ this.state.commits = commits;
     const a = this.state.annotations.find((x) => x.id === annotationId);
     if (!a) return;
 
-    // set file to annotation file and open
     if (a.filePath) this.state.activeFile = a.filePath;
 
-    // try to pick the annotation commit (if present) else keep current
     const commitHash = a.commit || a.commitHash || a.sha || this.getCurrentCommit();
     const repoPath = this.state.repoPath;
     const lesson = this.state.lessons.find((l) => l.id === this.state.activeLessonId);
@@ -494,7 +532,6 @@ this.state.commits = commits;
       key,
     });
 
-    // reveal line if possible
     if (typeof a.line === "number" && a.line >= 0) {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
@@ -518,8 +555,7 @@ this.state.commits = commits;
     const lessons = this.state.lessons.map((l) => ({
       id: l.id,
       title:
-        (l.manifest && (l.manifest.lessonTitle || l.manifest.title || l.manifest.name)) ||
-        l.id,
+        (l.manifest && (l.manifest.lessonTitle || l.manifest.title || l.manifest.name)) || l.id,
       rootUri: l.rootUri,
     }));
 
@@ -533,7 +569,6 @@ this.state.commits = commits;
     const commitIndex = this.state.commitIndex;
     const currentCommit = this.getCurrentCommit();
 
-    // Media for current commit (video/audio)
     const lesson = this.state.lessons.find((l) => l.id === activeLessonId);
     const mediaItems = collectMediaForCommit(this.state.walkthroughs, currentCommit).map((m) => {
       try {
@@ -545,6 +580,9 @@ this.state.commits = commits;
         return { ...m, webviewUri: null };
       }
     });
+
+    const titleValue = this.state.walkthroughSearchTitle || "";
+    const keywordValue = this.state.walkthroughSearchKeyword || "";
 
     return /* html */ `<!DOCTYPE html>
 <html lang="en">
@@ -604,20 +642,18 @@ this.state.commits = commits;
 
     textarea { width:100%; min-height: 180px; resize: vertical; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground);
       border: 1px solid var(--vscode-editorWidget-border); border-radius: 12px; padding: 10px; box-sizing: border-box; }
-  
-      .sliderRow{display:flex;align-items:center;gap:8px;}
-      .iconBtn{background:#222;border:1px solid #444;color:#ddd;border-radius:6px;padding:6px 10px;cursor:pointer;}
-      .iconBtn:hover{background:#2a2a2a;}
-      .iconBtn:disabled{opacity:.4;cursor:not-allowed;}
-      .sliderRow input[type="range"]{flex:1;}
 
-    
-      .card { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px; margin-top: 10px; }
-      .cardTitle { font-weight: 700; }
-      .steps { margin: 8px 0 0 18px; padding: 0; }
-      .steps li { margin: 6px 0; }
+    .sliderRow{display:flex;align-items:center;gap:8px;}
+    .iconBtn{background:#222;border:1px solid #444;color:#ddd;border-radius:6px;padding:6px 10px;cursor:pointer;}
+    .iconBtn:hover{background:#2a2a2a;}
+    .iconBtn:disabled{opacity:.4;cursor:not-allowed;}
+    .sliderRow input[type="range"]{flex:1;}
 
-</style>
+    .card { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px; margin-top: 10px; }
+    .cardTitle { font-weight: 700; }
+    .steps { margin: 8px 0 0 18px; padding: 0; }
+    .steps li { margin: 6px 0; }
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -657,7 +693,11 @@ this.state.commits = commits;
 
       <div class="label">Timeline</div>
       <div class="muted">${commits.length ? `${commitIndex + 1} / ${commits.length}` : "No commits loaded"}</div>
-      <div class="sliderRow"><button id="commitPrev" class="iconBtn" ${commits.length ? "" : "disabled"} title="Previous commit">◀</button><input id="commitSlider" type="range" min="0" max="${Math.max(0, commits.length - 1)}" value="${Math.min(commitIndex, Math.max(0, commits.length - 1))}" ${commits.length ? "" : "disabled"} /><button id="commitNext" class="iconBtn" ${commits.length ? "" : "disabled"} title="Next commit">▶</button></div>
+      <div class="sliderRow">
+        <button id="commitPrev" class="iconBtn" ${commits.length ? "" : "disabled"} title="Previous commit">◀</button>
+        <input id="commitSlider" type="range" min="0" max="${Math.max(0, commits.length - 1)}" value="${Math.min(commitIndex, Math.max(0, commits.length - 1))}" ${commits.length ? "" : "disabled"} />
+        <button id="commitNext" class="iconBtn" ${commits.length ? "" : "disabled"} title="Next commit">▶</button>
+      </div>
 
       <div class="tabs">
         <button class="tabbtn ${activeTab === "timeline" ? "active" : ""}" data-tab="timeline">Commit Playback</button>
@@ -682,9 +722,7 @@ this.state.commits = commits;
         <div class="h">Media for this commit</div>
         ${
           mediaItems.length
-            ? mediaItems
-                .map((m) => renderMediaItem(m))
-                .join("")
+            ? mediaItems.map((m) => renderMediaItem(m)).join("")
             : `<div class="muted">No media attached to this commit.</div>`
         }
       </div>
@@ -698,7 +736,25 @@ this.state.commits = commits;
           : activeTab === "walkthroughs"
           ? `<div class="panel">
                <div class="h">Walkthroughs</div>
-               ${renderWalkthroughsForCommit(this.state.walkthroughs, commits?.[commitIndex]?.hash)}
+
+               <input id="walkthroughSearchTitle" type="text"
+                 placeholder="Search by title..."
+                 value="${escapeHtml(titleValue)}" />
+
+               <div style="height:8px;"></div>
+
+               <input id="walkthroughSearchKeyword" type="text"
+                 placeholder="Search by keyword (steps, description, file)..."
+                 value="${escapeHtml(keywordValue)}" />
+
+               <div id="walkthroughList">
+                 ${renderWalkthroughsForCommit(
+                   this.state.walkthroughs,
+                   commits?.[commitIndex]?.hash,
+                   titleValue,
+                   keywordValue
+                 )}
+               </div>
              </div>`
           : ""
       }
@@ -758,7 +814,6 @@ this.state.commits = commits;
       slider.dispatchEvent(new Event("input"));
     });
 
-
     for (const btn of document.querySelectorAll(".tabbtn")) {
       btn.addEventListener("click", () => vscode.postMessage({ type: "student.setTab", tab: btn.dataset.tab }));
     }
@@ -772,6 +827,36 @@ this.state.commits = commits;
       });
     }
 
+    // ✅ FR17: walkthrough search inputs (title + keyword)
+    const wtTitle = document.getElementById("walkthroughSearchTitle");
+    const wtKeyword = document.getElementById("walkthroughSearchKeyword");
+
+    function sendWalkthroughSearch() {
+      vscode.postMessage({
+        type: "student.walkthrough.search",
+        title: wtTitle ? wtTitle.value : "",
+        keyword: wtKeyword ? wtKeyword.value : "",
+      });
+    }
+
+    if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearch);
+    if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearch);
+
+    // ✅ FR17: Open Step buttons (event delegation so it still works after re-render)
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".wtOpenStep");
+      if (!btn) return;
+
+      try {
+        const raw = btn.getAttribute("data-step");
+        const step = JSON.parse(raw);
+        vscode.postMessage({ type: "student.walkthrough.openStep", step });
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // LLM elements (needed for message handler)
     const askBtn = document.getElementById("llmAskBtn");
     const promptEl = document.getElementById("llmPrompt");
     const outputEl = document.getElementById("llmOutput");
@@ -779,13 +864,8 @@ this.state.commits = commits;
     if (askBtn) {
       askBtn.addEventListener("click", () => {
         const question = (promptEl?.value || "").trim();
-
         outputEl.value = question ? "Thinking..." : "Analyzing selection...";
-
-        vscode.postMessage({
-          type: "student.llm.ask",
-          question // can be "" now
-        });
+        vscode.postMessage({ type: "student.llm.ask", question });
       });
     }
 
@@ -793,17 +873,11 @@ this.state.commits = commits;
       const msg = event.data;
       if (!msg) return;
 
-      if (msg.type === "student.llm.response") {
-        outputEl.value = msg.text || "";
-      }
-
-      if (msg.type === "student.llm.error") {
-        outputEl.value = "Error: " + (msg.message || "Unknown error");
-      }
+      if (msg.type === "student.llm.response") outputEl.value = msg.text || "";
+      if (msg.type === "student.llm.error") outputEl.value = "Error: " + (msg.message || "Unknown error");
     });
 
     const clearBtn = document.getElementById("llmClearBtn");
-
     if (clearBtn) {
       clearBtn.addEventListener("click", () => {
         if (promptEl) promptEl.value = "";
@@ -845,73 +919,139 @@ this.state.commits = commits;
           <div class="muted">${meta}</div>
           ${isVideo ? `<video controls style="width:100%; margin-top:8px;"><source src="${uri}"></video>` : ""}
           ${isAudio ? `<audio controls style="width:100%; margin-top:8px;"><source src="${uri}"></audio>` : ""}
-          ${(!isAudio && !isVideo) ? `<a href="${uri}">Open media</a>` : ""}
+          ${!isAudio && !isVideo ? `<a href="${uri}">Open media</a>` : ""}
         </div>
       `;
     }
 
-    
-function walkthroughsForCommit(walkthroughs, commitHash) {
-  if (!commitHash) return [];
-  const out = [];
-  for (const w of walkthroughs || []) {
-    const wCommit = w.commitHash || w.commit || w.sha;
-    if (wCommit && wCommit === commitHash) { out.push(w); continue; }
+    function walkthroughsForCommit(walkthroughs, commitHash) {
+      if (!commitHash) return [];
+      const out = [];
+      for (const w of walkthroughs || []) {
+        const wCommit = w.commitHash || w.commit || w.sha;
+        if (wCommit && wCommit === commitHash) {
+          out.push(w);
+          continue;
+        }
 
-    const steps = Array.isArray(w.steps) ? w.steps : [];
-    if (steps.some((s) => (s.commitHash || s.commit || s.sha) === commitHash)) {
-      out.push(w);
-      continue;
+        const steps = Array.isArray(w.steps) ? w.steps : [];
+        if (steps.some((s) => (s.commitHash || s.commit || s.sha) === commitHash)) {
+          out.push(w);
+          continue;
+        }
+      }
+      return out;
     }
-  }
-  return out;
-}
 
-function renderWalkthroughsForCommit(walkthroughs, commitHash) {
-  const list = walkthroughsForCommit(walkthroughs, commitHash);
-  if (!commitHash) return `<div class="muted">No commits loaded.</div>`;
-  if (!list.length) return `<div class="muted">No walkthrough for this commit.</div>`;
+    // UPDATED: accepts titleTerm + keywordTerm
+    function renderWalkthroughsForCommit(walkthroughs, commitHash, titleTerm, keywordTerm) {
+      const list = walkthroughsForCommit(walkthroughs, commitHash);
+      if (!commitHash) return `<div class="muted">No commits loaded.</div>`;
 
-  return list
-    .map((w) => {
-      const title = escapeHtml(w.title || "Walkthrough");
-      const desc = escapeHtml(w.description || "");
-      const steps = Array.isArray(w.steps) ? w.steps : [];
-      const stepsHtml = steps.length
-        ? `<ol class="steps">` +
-          steps
-            .map((s) => {
-              const st = escapeHtml(s.text || s.title || s.description || "");
-              const fp = escapeHtml(s.filePath || "");
-              const ln = typeof s.line === "number" ? s.line : typeof s.lineNumber === "number" ? s.lineNumber : null;
-              const meta = [fp, ln !== null ? `L${ln}` : ""].filter(Boolean).join(" · ");
-              return `<li><div>${st || "<span class='muted'>(step)</span>"}</div>${meta ? `<div class="muted">${meta}</div>` : ""}</li>`;
-            })
-            .join("") +
-          `</ol>`
-        : `<div class="muted">No steps for this walkthrough.</div>`;
+      const t = (titleTerm || "").trim().toLowerCase();
+      const k = (keywordTerm || "").trim().toLowerCase();
 
-      return `<div class="card">
-                <div class="cardTitle">${title}</div>
-                ${desc ? `<div class="muted" style="margin-top:4px;">${desc}</div>` : ""}
-                <div style="margin-top:8px;">${stepsHtml}</div>
-              </div>`;
-    })
-    .join("");
-}
+      const filtered = list.filter((w) => {
+        const title = String(w.title || "").toLowerCase();
+        const desc = String(w.description || "").toLowerCase();
 
-function renderAnnotations(annotations) {
+        // title filter
+        if (t && !title.includes(t)) return false;
+
+        // keyword filter (search deeper)
+        if (k) {
+          const steps = Array.isArray(w.steps) ? w.steps : [];
+          const stepBlob = steps
+            .map((s) =>
+              [
+                s.text || s.title || s.description || "",
+                s.filePath || s.file || s.path || "",
+              ].join(" ")
+            )
+            .join(" ")
+            .toLowerCase();
+
+          const blob = [title, desc, stepBlob].join(" ").toLowerCase();
+          if (!blob.includes(k)) return false;
+        }
+
+        return true;
+      });
+
+      if (!filtered.length) {
+        if (t || k) {
+          const what =
+            t && k
+              ? `title="${escapeHtml(titleTerm)}", keyword="${escapeHtml(keywordTerm)}"`
+              : t
+              ? `title="${escapeHtml(titleTerm)}"`
+              : `keyword="${escapeHtml(keywordTerm)}"`;
+
+          return `<div class="muted">No walkthrough matches (${what}) for this commit.</div>`;
+        }
+        return `<div class="muted">No walkthrough for this commit.</div>`;
+      }
+
+      return filtered
+        .map((w) => {
+          const title = escapeHtml(w.title || "Walkthrough");
+          const desc = escapeHtml(w.description || "");
+          const steps = Array.isArray(w.steps) ? w.steps : [];
+
+          const stepsHtml = steps.length
+            ? `<ol class="steps">` +
+              steps
+                .map((s) => {
+                  const st = escapeHtml(s.text || s.title || s.description || "");
+                  const fp = escapeHtml(s.filePath || "");
+                  const ln =
+                    typeof s.line === "number"
+                      ? s.line
+                      : typeof s.lineNumber === "number"
+                      ? s.lineNumber
+                      : null;
+
+                  const meta = [fp, ln !== null ? `L${ln}` : ""].filter(Boolean).join(" · ");
+
+                  const stepJson = escapeHtml(JSON.stringify(s));
+
+                  return `<li style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+                    <div style="flex:1;">
+                      <div>${st || "<span class='muted'>(step)</span>"}</div>
+                      ${meta ? `<div class="muted">${meta}</div>` : ""}
+                    </div>
+                    <button class="smallbtn wtOpenStep" data-step="${stepJson}">Open step</button>
+                  </li>`;
+                })
+                .join("") +
+              `</ol>`
+            : `<div class="muted">No steps for this walkthrough.</div>`;
+
+          return `<div class="card">
+                    <div class="cardTitle">${title}</div>
+                    ${desc ? `<div class="muted" style="margin-top:4px;">${desc}</div>` : ""}
+                    <div style="margin-top:8px;">${stepsHtml}</div>
+                  </div>`;
+        })
+        .join("");
+    }
+
+    function renderAnnotations(annotations) {
       if (!annotations || annotations.length === 0) {
         return `<div class="muted">No annotations found in this lesson export.</div>`;
       }
-      return annotations.map((a) => `
+      return annotations
+        .map(
+          (a) => `
         <div class="annItem">
           <div class="t">${escapeHtml(a.title || a.id)}</div>
           <div class="muted"><code>${escapeHtml(a.filePath || "")}</code> : ${escapeHtml(String(a.line ?? ""))}</div>
           <div class="muted" style="margin-top:6px;">${escapeHtml(a.preview || "")}</div>
           <button class="smallbtn" data-open-annotation="1" data-annotation-id="${escapeHtml(a.id)}">Open (read-only)</button>
         </div>
-      `).join("");
+      `
+        )
+        .join("");
     }
 
     function escapeHtml(s) {
