@@ -839,8 +839,22 @@ class StudentHomeViewProvider {
       });
     }
 
-    if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearch);
-    if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearch);
+    let wtTimer = null;
+
+function sendWalkthroughSearchDebounced() {
+  if (wtTimer) clearTimeout(wtTimer);
+
+  wtTimer = setTimeout(() => {
+    vscode.postMessage({
+      type: "student.walkthrough.search",
+      title: wtTitle ? wtTitle.value : "",
+      keyword: wtKeyword ? wtKeyword.value : "",
+    });
+  }, 250);
+}
+
+if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
+if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
 
     // ✅ FR17: Open Step buttons (event delegation so it still works after re-render)
     document.addEventListener("click", (e) => {
