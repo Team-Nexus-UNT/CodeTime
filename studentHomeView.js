@@ -190,11 +190,31 @@ class StudentHomeViewProvider {
 
             // 3) choose the step file
             const fp = step.filePath || step.file || step.path;
-            if (fp) this.state.activeFile = fp;
+            if (fp) {
+              // Normalize to repo-relative path (instructor exports often store absolute paths)
+              const rel = normalizeRelFilePath(fp, this.state.repoPath);
+              this.state.activeFile = rel || fp;
+            }
 
             // 4) re-render & open snapshot
+            // If the step references a commit that isn't present in our filtered timeline,
+            // open it directly anyway.
+            const commitToOpen = stepCommit || this.getCurrentCommit();
+            const fileToOpen = this.state.activeFile;
+
             this.render();
-            await this.openCurrentSnapshot(true);
+
+            if (this.state.repoPath && commitToOpen && fileToOpen) {
+              const lesson = this.state.lessons.find((l) => l.id === this.state.activeLessonId);
+              const key = `/student/${lesson?.id || "lesson"}/${commitToOpen}/${fileToOpen}`.replace(/\\/g, "/");
+              await vscode.commands.executeCommand("codetime.student.openSnapshot", {
+                userInitiated: true,
+                repoPath: this.state.repoPath,
+                commitHash: commitToOpen,
+                fileRelPath: fileToOpen,
+                key,
+              });
+            }
 
             // 5) jump to the line (if given)
             const ln =
@@ -460,6 +480,10 @@ class StudentHomeViewProvider {
       }
     }
 
+    // Student timeline should play forward in time (oldest -> newest)
+    // git log returns newest-first, so reverse it.
+    if (commits && commits.length) commits = commits.slice().reverse();
+
     this.state.commits = commits;
 
     // Build file list from walkthrough steps + annotations
@@ -593,6 +617,12 @@ class StudentHomeViewProvider {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CodeTime Student</title>
   <style>
+    :root {
+      --codetime-green: #2e7d32;
+      --codetime-green-soft: rgba(46, 125, 50, 0.16);
+      --codetime-green-border: rgba(46, 125, 50, 0.65);
+    }
+
     body { font-family: var(--vscode-font-family); padding: 0; margin: 0; color: var(--vscode-foreground); }
     .wrap { display: grid; grid-template-columns: 280px 1fr 340px; height: 100vh; }
 
@@ -600,10 +630,21 @@ class StudentHomeViewProvider {
     .mid  { border-right: 1px solid var(--vscode-editorWidget-border); padding: 12px; overflow:auto; }
     .right { padding: 12px; overflow:auto; }
 
-    .brand { font-weight: 800; font-size: 16px; margin-bottom: 10px; }
-    .btn { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--vscode-editorWidget-border);
-      background: var(--vscode-button-background); color: var(--vscode-button-foreground); cursor: pointer; }
+    .brand {
+      font-weight: 800;
+      font-size: 16px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--codetime-green-border);
+      background: var(--codetime-green-soft);
+      color: var(--codetime-green);
+    }
+
+    .btn { width: 100%; padding: 9px 10px; border-radius: 999px; border: 1px solid var(--codetime-green-border);
+      background: var(--codetime-green); color: #ffffff; cursor: pointer; }
     .btn.secondary { background: var(--vscode-button-secondaryBackground, transparent); color: var(--vscode-button-secondaryForeground, var(--vscode-foreground)); }
+    .btn.danger { border-color: rgba(255, 82, 82, 0.45); background: rgba(255, 82, 82, 0.18); color: var(--vscode-foreground); }
     .btn:active { transform: translateY(1px); }
 
     .group { margin-top: 12px; display: grid; gap: 8px; }
@@ -644,8 +685,15 @@ class StudentHomeViewProvider {
       border: 1px solid var(--vscode-editorWidget-border); border-radius: 12px; padding: 10px; box-sizing: border-box; }
 
     .sliderRow{display:flex;align-items:center;gap:8px;}
-    .iconBtn{background:#222;border:1px solid #444;color:#ddd;border-radius:6px;padding:6px 10px;cursor:pointer;}
-    .iconBtn:hover{background:#2a2a2a;}
+    .iconBtn{
+      background: var(--vscode-button-secondaryBackground, transparent);
+      border: 1px solid var(--vscode-editorWidget-border);
+      color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .iconBtn:hover{filter: brightness(1.05);}
     .iconBtn:disabled{opacity:.4;cursor:not-allowed;}
     .sliderRow input[type="range"]{flex:1;}
 
@@ -653,6 +701,14 @@ class StudentHomeViewProvider {
     .cardTitle { font-weight: 700; }
     .steps { margin: 8px 0 0 18px; padding: 0; }
     .steps li { margin: 6px 0; }
+
+    .stepDetail {
+      margin-top: 10px;
+      border: 1px solid var(--codetime-green-border);
+      background: var(--codetime-green-soft);
+      border-radius: 12px;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
@@ -747,6 +803,8 @@ class StudentHomeViewProvider {
                  placeholder="Search by keyword (steps, description, file)..."
                  value="${escapeHtml(keywordValue)}" />
 
+               <div id="stepDetail" class="stepDetail" style="display:none;"></div>
+
                <div id="walkthroughList">
                  ${renderWalkthroughsForCommit(
                    this.state.walkthroughs,
@@ -830,6 +888,75 @@ class StudentHomeViewProvider {
     // ✅ FR17: walkthrough search inputs (title + keyword)
     const wtTitle = document.getElementById("walkthroughSearchTitle");
     const wtKeyword = document.getElementById("walkthroughSearchKeyword");
+    const stepDetailEl = document.getElementById("stepDetail");
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function getFocusableState() {
+      const active = document.activeElement;
+      const focusId = active && active.id ? active.id : null;
+      let selStart = null;
+      let selEnd = null;
+      try {
+        if (active && typeof active.selectionStart === "number") {
+          selStart = active.selectionStart;
+          selEnd = active.selectionEnd;
+        }
+      } catch {}
+      return { focusId, selStart, selEnd };
+    }
+
+    function renderStepDetail(step) {
+      if (!stepDetailEl) return;
+      if (!step) {
+        stepDetailEl.style.display = "none";
+        stepDetailEl.innerHTML = "";
+        return;
+      }
+
+      // Instructor exports store step body as 'note' and the display label as 'label'.
+      // Support multiple possible fields so Student Mode always shows the step text.
+      const text = (step.text || step.note || step.label || step.title || step.description || "").toString();
+      const fp = (step.filePath || step.file || step.path || "").toString();
+      const ln = (typeof step.line === "number" ? step.line : (typeof step.lineNumber === "number" ? step.lineNumber : null));
+      const sha = (step.commitHash || step.commit || step.sha || "").toString();
+
+      const meta = [
+        fp,
+        ln !== null ? ("L" + ln) : "",
+        sha ? ("commit " + sha.slice(0, 8)) : "",
+      ].filter(Boolean).join(" · ");
+
+      stepDetailEl.style.display = "block";
+      stepDetailEl.innerHTML =
+        '<div style="font-weight:800;margin-bottom:4px;">Selected step</div>' +
+        (text
+          ? ('<div style="margin-bottom:6px;">' + escapeHtml(text) + '</div>')
+          : '<div class="muted" style="margin-bottom:6px;">(no step text)</div>') +
+        (meta ? ('<div class="muted">' + escapeHtml(meta) + '</div>') : "");
+    }
+
+    // Restore focus + selected step after a webview re-render
+    try {
+      const st = vscode.getState() || {};
+      if (st.selectedStep) renderStepDetail(st.selectedStep);
+      if (st.focusId) {
+        const el = document.getElementById(st.focusId);
+        if (el) {
+          el.focus();
+          if (typeof st.selStart === "number") {
+            el.setSelectionRange(st.selStart, typeof st.selEnd === "number" ? st.selEnd : st.selStart);
+          }
+        }
+      }
+    } catch {}
 
     function sendWalkthroughSearch() {
       vscode.postMessage({
@@ -843,6 +970,21 @@ class StudentHomeViewProvider {
 
 function sendWalkthroughSearchDebounced() {
   if (wtTimer) clearTimeout(wtTimer);
+
+  // Persist focus/caret so typing doesn't get interrupted by a re-render
+  try {
+    const prev = vscode.getState() || {};
+    const { focusId, selStart, selEnd } = getFocusableState();
+    vscode.setState({
+      ...prev,
+      walkthroughSearchTitle: wtTitle ? wtTitle.value : "",
+      walkthroughSearchKeyword: wtKeyword ? wtKeyword.value : "",
+      selectedStep: prev.selectedStep || null,
+      focusId,
+      selStart,
+      selEnd,
+    });
+  } catch {}
 
   wtTimer = setTimeout(() => {
     vscode.postMessage({
@@ -864,6 +1006,21 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
       try {
         const raw = btn.getAttribute("data-step");
         const step = JSON.parse(raw);
+
+        // Show the step details in the UI immediately
+        renderStepDetail(step);
+        try {
+          const prev = vscode.getState() || {};
+          const { focusId, selStart, selEnd } = getFocusableState();
+          vscode.setState({
+            ...prev,
+            selectedStep: step,
+            focusId,
+            selStart,
+            selEnd,
+          });
+        } catch {}
+
         vscode.postMessage({ type: "student.walkthrough.openStep", step });
       } catch (err) {
         console.error(err);
@@ -1088,8 +1245,9 @@ function normalizeWalkthroughs(raw) {
 
 function fixWalkthrough(w) {
   return {
-    id: String(w.id || w.walkthroughId || w.title || Math.random().toString(36).slice(2)),
-    title: w.title || "Walkthrough",
+    id: String(w.id || w.walkthroughId || w.title || w.name || Math.random().toString(36).slice(2)),
+    // Instructor mode uses `name`; keep `title` as our display field.
+    title: w.title || w.name || w.walkthroughName || "Walkthrough",
     description: w.description || "",
     steps: Array.isArray(w.steps) ? w.steps.map((s) => ({ ...s })) : [],
     media: Array.isArray(w.media) ? w.media.map((m) => ({ ...m })) : [],
