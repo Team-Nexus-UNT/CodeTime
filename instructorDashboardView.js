@@ -22,6 +22,33 @@ class InstructorDashboardViewProvider {
     this.gitService = gitService;
   }
 
+  /**
+   * Best-effort "current file" resolver.
+   * - If a real file is active, use it.
+   * - Else fall back to the last real file we used for playback.
+   * - Else fall back to any visible real file.
+   */
+  _getSourceFileUri() {
+    const active = vscode.window.activeTextEditor?.document?.uri;
+    if (active?.scheme === 'file') {
+      globalThis._codetimeSourceFileUri = active;
+      return active;
+    }
+
+    const stored = globalThis._codetimeSourceFileUri;
+    if (stored?.scheme === 'file') return stored;
+
+    const realEditor = vscode.window.visibleTextEditors.find(
+      (e) => e.document?.uri?.scheme === 'file'
+    );
+    if (realEditor) {
+      globalThis._codetimeSourceFileUri = realEditor.document.uri;
+      return realEditor.document.uri;
+    }
+
+    return null;
+  }
+
   async resolveWebviewView(view) {
     const context = this.context;
     const gitService = this.gitService;
@@ -101,11 +128,21 @@ class InstructorDashboardViewProvider {
         // timeline tab
 
         if (msg.type === 'timeline/requestCommits') {
-          const editor = vscode.window.activeTextEditor;
-          const wsFolder = editor ? vscode.workspace.getWorkspaceFolder(editor.document.uri) : null;
-          const repoPath = wsFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          const sourceUri = this._getSourceFileUri();
+          // UX requirement: if no file is open/selected, the timeline should be empty.
+          if (!sourceUri) {
+            view.webview.postMessage({ type: 'timeline/commits', commits: [] });
+            view.webview.postMessage({
+              type: 'timeline/error',
+              message: 'Open a file from the repository to load commits.'
+            });
+            return;
+          }
 
+          const wsFolder = vscode.workspace.getWorkspaceFolder(sourceUri);
+          const repoPath = wsFolder?.uri.fsPath;
           if (!repoPath) {
+            view.webview.postMessage({ type: 'timeline/commits', commits: [] });
             view.webview.postMessage({ type: 'timeline/error', message: 'No workspace folder open.' });
             return;
           }
@@ -126,17 +163,7 @@ class InstructorDashboardViewProvider {
         if (msg.type === 'timeline/scrubTo' && msg.hash) {
           globalThis._codetimeCurrentCommitHash = msg.hash;
 
-          if (vscode.window.activeTextEditor?.document?.uri?.scheme === 'file') {
-            globalThis._codetimeSourceFileUri = vscode.window.activeTextEditor.document.uri;
-          }
-
-          let sourceUri = globalThis._codetimeSourceFileUri;
-
-          if (!sourceUri) {
-            const realEditor = vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
-            if (realEditor) sourceUri = realEditor.document.uri;
-            globalThis._codetimeSourceFileUri = sourceUri;
-          }
+          const sourceUri = this._getSourceFileUri();
 
           if (!sourceUri) {
             view.webview.postMessage({ type: 'timeline/error', message: 'Open a real file once, then use the scrubber.' });
@@ -184,19 +211,11 @@ class InstructorDashboardViewProvider {
         }
 
         if (msg.type === 'timeline/commitSelected' && msg.hash) {
-          if (!vscode.window.activeTextEditor) {
-            view.webview.postMessage({ type: 'timeline/error', message: 'Open a file in the editor first, then click View or Diff.' });
-            return;
-          }
           await vscode.commands.executeCommand('codetime.showFileAtCommit', msg.hash);
           return;
         }
 
         if (msg.type === 'timeline/diffSelected' && msg.hash) {
-          if (!vscode.window.activeTextEditor) {
-            view.webview.postMessage({ type: 'timeline/error', message: 'Open a file in the editor first, then click View or Diff.' });
-            return;
-          }
           await vscode.commands.executeCommand('codetime.showDiffForCommit', msg.hash);
           return;
         }

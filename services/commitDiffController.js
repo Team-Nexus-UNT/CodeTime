@@ -22,22 +22,49 @@ const removedMarkerDecoration = vscode.window.createTextEditorDecorationType({
 
 // active file helper
 function getActiveFileInfo() {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) return null;
+  // Prefer the active *real* file. If the active editor is a virtual doc
+  // (codetime-playback / codetime commit snapshot / diff, etc), fall back to
+  // the last known real file used for playback.
 
-  const wsFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+  /** @type {vscode.Uri | undefined} */
+  let uri;
+
+  const active = vscode.window.activeTextEditor?.document?.uri;
+  if (active?.scheme === 'file') {
+    uri = active;
+    // Keep this in sync so View/Diff work even when focus is on virtual docs.
+    globalThis._codetimeSourceFileUri = active;
+  } else if (globalThis._codetimeSourceFileUri?.scheme === 'file') {
+    uri = globalThis._codetimeSourceFileUri;
+  } else {
+    const realEditor = vscode.window.visibleTextEditors.find(
+      (e) => e.document?.uri?.scheme === 'file'
+    );
+    if (realEditor) {
+      uri = realEditor.document.uri;
+      globalThis._codetimeSourceFileUri = uri;
+    }
+  }
+
+  if (!uri) return null;
+
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!wsFolder) return null;
 
   const repoPath = wsFolder.uri.fsPath;
-  const absPath = editor.document.uri.fsPath;
-  const relPath = path.relative(repoPath, absPath);
+  const absPath = uri.fsPath;
+  const relPath = path.relative(repoPath, absPath).replaceAll('\\', '/');
 
-  return {
-    repoPath,
-    absPath,
-    relPath,
-    languageId: editor.document.languageId
-  };
+  // If we have an open editor for this file, use its languageId; otherwise
+  // fall back to a best-effort value.
+  const languageId =
+    vscode.window.visibleTextEditors.find(
+      (e) => e.document?.uri?.scheme === 'file' && e.document.uri.fsPath === absPath
+    )?.document?.languageId ||
+    vscode.window.activeTextEditor?.document?.languageId ||
+    'plaintext';
+
+  return { repoPath, absPath, relPath, languageId };
 }
 
 // commit snapshot content provider

@@ -98,7 +98,7 @@ class StudentHomeViewProvider {
       walkthroughs: [],
       annotations: [],
 
-      // ✅ FR17: search fields
+      // FR17: search fields
       walkthroughSearchTitle: "",
       walkthroughSearchKeyword: "",
     };
@@ -166,7 +166,7 @@ class StudentHomeViewProvider {
             break;
           }
 
-          // ✅ FR17: Search handler (title + keyword)
+          // FR17: Search handler (title + keyword)
           case "student.walkthrough.search": {
             this.state.walkthroughSearchTitle = String(msg.title || "");
             this.state.walkthroughSearchKeyword = String(msg.keyword || "");
@@ -174,7 +174,7 @@ class StudentHomeViewProvider {
             break;
           }
 
-          // ✅ FR17: Open/jump to a walkthrough step
+          // FR17: Open/jump to a walkthrough step
           case "student.walkthrough.openStep": {
             const step = msg.step;
             if (!step) break;
@@ -885,7 +885,7 @@ class StudentHomeViewProvider {
       });
     }
 
-    // ✅ FR17: walkthrough search inputs (title + keyword)
+    // FR17: walkthrough search inputs (title + keyword)
     const wtTitle = document.getElementById("walkthroughSearchTitle");
     const wtKeyword = document.getElementById("walkthroughSearchKeyword");
     const stepDetailEl = document.getElementById("stepDetail");
@@ -998,7 +998,7 @@ function sendWalkthroughSearchDebounced() {
 if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
 if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
 
-    // ✅ FR17: Open Step buttons (event delegation so it still works after re-render)
+    // FR17: Open Step buttons (event delegation so it still works after re-render)
     document.addEventListener("click", (e) => {
       const btn = e.target.closest(".wtOpenStep");
       if (!btn) return;

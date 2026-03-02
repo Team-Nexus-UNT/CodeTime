@@ -3,6 +3,24 @@ const vscode = require('vscode');
 const path = require('path');
 
 function registerTimelineView(context, gitService) {
+  function getSourceFileUri() {
+    const active = vscode.window.activeTextEditor?.document?.uri;
+    if (active?.scheme === 'file') {
+      globalThis._codetimeSourceFileUri = active;
+      return active;
+    }
+    const stored = globalThis._codetimeSourceFileUri;
+    if (stored?.scheme === 'file') return stored;
+    const realEditor = vscode.window.visibleTextEditors.find(
+      (e) => e.document?.uri?.scheme === 'file'
+    );
+    if (realEditor) {
+      globalThis._codetimeSourceFileUri = realEditor.document.uri;
+      return realEditor.document.uri;
+    }
+    return null;
+  }
+
   const provider = {
     async resolveWebviewView(view) {
       view.webview.options = { enableScripts: true };
@@ -15,15 +33,22 @@ function registerTimelineView(context, gitService) {
           if (!msg || !msg.type) return;
 
           if (msg.type === 'requestCommits') {
-            const editor = vscode.window.activeTextEditor;
-            const wsFolder = editor ? vscode.workspace.getWorkspaceFolder(editor.document.uri) : null;
-            const repoPath = wsFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-
-            if (!repoPath) {
+            const sourceUri = getSourceFileUri();
+            if (!sourceUri) {
+              view.webview.postMessage({ type: 'commits', commits: [] });
               view.webview.postMessage({
                 type: 'error',
-                message: 'No workspace folder open.'
+                message: 'Open a file from the repository to load commits.'
               });
+              return;
+            }
+
+            const wsFolder = vscode.workspace.getWorkspaceFolder(sourceUri);
+            const repoPath = wsFolder?.uri.fsPath;
+
+            if (!repoPath) {
+              view.webview.postMessage({ type: 'commits', commits: [] });
+              view.webview.postMessage({ type: 'error', message: 'No workspace folder open.' });
               return;
             }
 
@@ -50,19 +75,7 @@ function registerTimelineView(context, gitService) {
           if (msg.type === 'scrubTo' && msg.hash) {
             globalThis._codetimeCurrentCommitHash = msg.hash;
 
-            if (vscode.window.activeTextEditor?.document?.uri?.scheme === 'file') {
-              globalThis._codetimeSourceFileUri = vscode.window.activeTextEditor.document.uri;
-            }
-
-            let sourceUri = globalThis._codetimeSourceFileUri;
-
-            if (!sourceUri) {
-              const realEditor = vscode.window.visibleTextEditors.find(
-                e => e.document.uri.scheme === 'file'
-              );
-              if (realEditor) sourceUri = realEditor.document.uri;
-              globalThis._codetimeSourceFileUri = sourceUri;
-            }
+            const sourceUri = getSourceFileUri();
 
             if (!sourceUri) {
               view.webview.postMessage({
@@ -123,7 +136,7 @@ function registerTimelineView(context, gitService) {
           if (
             (msg.type === 'commitSelected' || msg.type === 'diffSelected') &&
             msg.hash &&
-            !vscode.window.activeTextEditor
+            !getSourceFileUri()
           ) {
             view.webview.postMessage({
               type: 'error',
