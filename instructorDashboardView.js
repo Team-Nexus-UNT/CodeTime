@@ -61,25 +61,33 @@ class InstructorDashboardViewProvider {
       localResourceRoots: [context.globalStorageUri]
     };
 
-    const buildInstructorItemsHtml = async () => {
-      const audio = await listAudioForWebview(view.webview, audioDir);
-      const video = await listVideoForWebview(view.webview, videoDir);
+  const buildInstructorItemsHtml = async () => {
+    const audio = await listAudioForWebview(view.webview, audioDir);
+    const video = await listVideoForWebview(view.webview, videoDir);
 
-      return [
-        ...audio.map(i => `
-          <li>
-            <audio controls src="${i.webviewSrc}"></audio>
-            <div class="meta">${i.fileName}</div>
-            <button class="danger" data-uri="${i.raw}" data-action="delete">Delete</button>
-          </li>`),
-        ...video.map(i => `
-          <li>
-            <video controls width="240" src="${i.webviewSrc}"></video>
-            <div class="meta">${i.fileName}</div>
-            <button class="danger" data-uri="${i.raw}" data-action="delete">Delete</button>
-          </li>`)
-      ].join('');
-    };
+    const items = [
+      ...audio.map(i => `
+        <li class="mediaCard">
+          <div class="mediaHeader">
+            <div class="mediaTitle">🎵 Audio Clip</div>
+            <button class="danger mediaDeleteBtn" data-uri="${i.raw}" data-action="delete">🗑 Delete</button>
+          </div>
+          <div class="meta">${i.fileName}</div>
+          <audio controls src="${i.webviewSrc}" style="width:100%; margin-top:10px;"></audio>
+        </li>`),
+      ...video.map(i => `
+        <li class="mediaCard">
+          <div class="mediaHeader">
+            <div class="mediaTitle">🎥 Video Clip</div>
+            <button class="danger mediaDeleteBtn" data-uri="${i.raw}" data-action="delete">🗑 Delete</button>
+          </div>
+          <div class="meta">${i.fileName}</div>
+          <video controls src="${i.webviewSrc}" style="width:100%; margin-top:10px; border-radius:10px;"></video>
+        </li>`)
+    ];
+
+  return items.join('');
+};
 
     const rebuild = async () => {
       const instructorItems = await buildInstructorItemsHtml();
@@ -329,18 +337,35 @@ function getDashboardHtml(webview, instructorItemsHtml) {
     --ct-green: #2e7d32;
     --ct-green-soft: rgba(46,125,50,0.16);
     --ct-green-border: rgba(46,125,50,0.55);
+    --ct-red-soft: rgba(255,82,82,0.10);
+    --ct-red-border: rgba(255,82,82,0.35);
   }
 
-  body { font-family: var(--vscode-font-family); padding: 10px; color: var(--vscode-foreground); }
+  body {
+    font-family: var(--vscode-font-family);
+    padding: 10px;
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+  }
 
-  .tabs { display:flex; gap:8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .tabs {
+    display:flex;
+    gap:8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
   .tab {
     cursor:pointer;
     border-radius: 10px;
     padding: 6px 10px;
     border: 1px solid var(--vscode-editorWidget-border);
     background: rgba(0,0,0,0.06);
+    color: var(--vscode-foreground);
+    font-size: 12px;
+    font-family: inherit;
   }
+
   .tab.active {
     border-color: var(--ct-green-border);
     background: var(--ct-green-soft);
@@ -349,7 +374,6 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   .section { display:none; }
   .section.active { display:block; }
 
-  /* shared ui helpers */
   .header {
     background: var(--ct-green-soft);
     border: 1px solid var(--ct-green-border);
@@ -357,9 +381,28 @@ function getDashboardHtml(webview, instructorItemsHtml) {
     padding: 10px 12px;
     margin-bottom: 12px;
   }
-  .header-title { display:flex; align-items:center; gap:8px; font-weight:700; }
-  .dot { width:10px; height:10px; border-radius:999px; background: var(--ct-green); box-shadow: 0 0 0 4px var(--ct-green-soft); }
-  .header-sub { opacity:0.75; font-size: 12px; margin-top: 6px; }
+
+  .header-title {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:700;
+  }
+
+  .dot {
+    width:10px;
+    height:10px;
+    border-radius:999px;
+    background: var(--ct-green);
+    box-shadow: 0 0 0 4px var(--ct-green-soft);
+  }
+
+  .header-sub {
+    opacity:0.75;
+    font-size: 12px;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
 
   .card {
     border: 1px solid var(--vscode-editorWidget-border);
@@ -368,7 +411,36 @@ function getDashboardHtml(webview, instructorItemsHtml) {
     padding: 12px;
     margin-bottom: 12px;
   }
-  .row { display:flex; gap:8px; flex-wrap: wrap; }
+
+  .row {
+    display:flex;
+    gap:8px;
+    flex-wrap: wrap;
+  }
+
+  .title,
+  .section-title {
+    font-weight: 700;
+  }
+
+  .section-title {
+    margin-bottom: 8px;
+  }
+
+  .muted,
+  .emptyHint {
+    opacity: 0.75;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .muted {
+    margin-top: 6px;
+  }
+
+  .emptyHint {
+    margin-top: 6px;
+  }
 
   button {
     cursor:pointer;
@@ -377,90 +449,216 @@ function getDashboardHtml(webview, instructorItemsHtml) {
     border:1px solid var(--vscode-editorWidget-border);
     background: var(--vscode-button-secondaryBackground, rgba(0,0,0,0.10));
     color: var(--vscode-foreground);
+    font-family: inherit;
+    font-size: 12px;
   }
+
   button:hover { filter: brightness(1.06); }
-  button.primary { border-color: var(--ct-green-border); background: var(--ct-green-soft); }
-  button.danger { border-color: rgba(255,82,82,0.35); background: rgba(255,82,82,0.10); }
 
-  ul { list-style:none; padding-left:0; margin:0; }
-  li { padding: 10px; border: 1px solid var(--vscode-editorWidget-border); border-radius: 10px; margin-bottom: 10px; background: rgba(0,0,0,0.02); }
-  .meta { opacity:0.75; font-size: 12px; margin-top: 6px; }
+  button.primary {
+    border-color: var(--ct-green-border);
+    background: var(--ct-green-soft);
+  }
 
-  /* Timeline bits */
-  .scrubberRow { display:flex; gap:8px; align-items:center; margin: 0 0 10px; }
+  button.danger {
+    border-color: var(--ct-red-border);
+    background: var(--ct-red-soft);
+  }
+
+  ul {
+    list-style:none;
+    padding-left:0;
+    margin:0;
+  }
+
+  li {
+    padding: 10px;
+    border: 1px solid var(--vscode-editorWidget-border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: rgba(0,0,0,0.02);
+  }
+
+  .meta {
+    opacity:0.75;
+    font-size: 12px;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  .emptyState {
+    border: 1px solid var(--vscode-editorWidget-border);
+    border-radius: 10px;
+    background: rgba(0,0,0,0.02);
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.82;
+    line-height: 1.4;
+  }
+
+  .scrubberRow {
+    display:grid;
+    grid-template-columns: auto 1fr auto;
+    gap:10px;
+    align-items:center;
+    margin: 10px 0 0;
+  }
+
   .range {
-    -webkit-appearance:none; appearance:none;
-    width:100%; height:10px; border-radius:999px;
-    background: rgba(255,255,255,0.10);
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:14px;
+    border-radius:999px;
+    background: rgba(255,255,255,0.12);
     border:1px solid var(--vscode-editorWidget-border);
     outline:none;
   }
+
   .range::-webkit-slider-thumb{
-    -webkit-appearance:none; appearance:none;
-    width:16px; height:16px; border-radius:999px;
+    -webkit-appearance:none;
+    appearance:none;
+    width:18px;
+    height:18px;
+    border-radius:999px;
     background: var(--ct-green);
     border:2px solid rgba(0,0,0,0.35);
     box-shadow: 0 0 0 4px var(--ct-green-soft);
     cursor:pointer;
   }
-  .commit { border:1px solid var(--vscode-editorWidget-border); background: rgba(0,0,0,0.10); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
-  .hash { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; opacity: 0.9; }
-  .msg { margin-top: 6px; }
-  .muted { opacity: 0.75; font-size: 12px; margin-top: 6px; }
 
-  /* Walkthrough small helpers */
+  .timelineMeta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 12px;
+    opacity: 0.8;
+  }
+
+  .commit {
+    border:1px solid var(--vscode-editorWidget-border);
+    background: rgba(0,0,0,0.10);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  .hash {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    opacity: 0.9;
+  }
+
+  .msg {
+    margin-top: 6px;
+  }
+
   input[type="text"], textarea {
-    width: 100%; box-sizing: border-box;
-    padding: 6px 8px; margin-top: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    margin-top: 4px;
     background: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
     border: 1px solid var(--vscode-input-border, #555);
     border-radius: 6px;
     font-size: 12px;
+    font-family: inherit;
   }
-  textarea { resize: vertical; min-height: 50px; }
-  .wt-card { cursor:pointer; position:relative; padding-right: 44px; }
+
+  textarea {
+    resize: vertical;
+    min-height: 50px;
+  }
+
+  .wt-card {
+    cursor:pointer;
+    position:relative;
+    padding-right: 44px;
+  }
+
   .icon-btn {
-    position:absolute; top:10px; right:10px;
+    position:absolute;
+    top:10px;
+    right:10px;
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(0,0,0,0.10);
     border-radius: 8px;
     padding: 4px 8px;
   }
+
   .icon-btn.danger {
-    border-color: rgba(255, 82, 82, 0.35);
-    background: rgba(255, 82, 82, 0.10);
+    border-color: var(--ct-red-border);
+    background: var(--ct-red-soft);
+  }
+
+  .stack {
+    display: grid;
+    gap: 8px;
+  }
+
+  .mediaCard {
+    border: 1px solid var(--vscode-editorWidget-border);
+    background: rgba(0,0,0,0.03);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .mediaHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .mediaTitle {
+    font-weight: 700;
+  }
+
+  .mediaDeleteBtn {
+    white-space: nowrap;
   }
 </style>
 </head>
 
 <body>
   <div class="header">
-    <div class="header-title"><span class="dot"></span><div>Instructor Dashboard</div></div>
-    <div class="header-sub">Timeline + Instructor tools + Walkthroughs, all in one place.</div>
+    <div class="header-title"><span class="dot"></span><div>🛠 Instructor Dashboard</div></div>
+    <div class="header-sub">Timeline, instructor tools, and walkthrough authoring in one place.</div>
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="timeline">Timeline</div>
-    <div class="tab" data-tab="instructor">Tools</div>
-    <div class="tab" data-tab="walkthroughs">Walkthroughs</div>
+    <div class="tab active" data-tab="timeline">🕒 Timeline</div>
+    <div class="tab" data-tab="instructor">🧰 Tools</div>
+    <div class="tab" data-tab="walkthroughs">📖 Walkthroughs</div>
   </div>
 
   <!-- TIMELINE -->
   <div class="section active" id="tab-timeline">
     <div class="card">
-      <div class="row" style="justify-content: space-between;">
-        <div style="font-weight:700;">Timeline</div>
-        <button id="timelineRefresh" class="primary">Refresh</button>
+      <div class="row" style="justify-content: space-between; align-items:center;">
+        <div class="section-title">🕒 Timeline</div>
+        <button id="timelineRefresh" class="primary">🔄 Refresh</button>
       </div>
-    </div>
+      <div class="emptyHint">Browse commit history for the currently open repository file.</div>
 
-    <div class="scrubberRow">
-      <button id="timelinePrev">Prev</button>
-      <input id="timelineScrub" class="range" type="range" min="0" max="0" value="0" />
-      <button id="timelineNext">Next</button>
+      <div class="scrubberRow">
+        <button id="timelinePrev">← Prev</button>
+        <input id="timelineScrub" class="range" type="range" min="0" max="0" value="0" />
+        <button id="timelineNext">Next →</button>
+      </div>
+
+      <div class="timelineMeta">
+        <span>Oldest</span>
+        <span>Newest</span>
+      </div>
+
+      <div id="timelineCurrent" class="muted"></div>
     </div>
-    <div id="timelineCurrent" class="muted"></div>
 
     <div id="timelineStatus" class="muted"></div>
     <div id="timelineList"></div>
@@ -469,21 +667,29 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   <!-- INSTRUCTOR TOOLS -->
   <div class="section" id="tab-instructor">
     <div class="card">
+      <div class="section-title">🧰 Instructor Tools</div>
       <div class="row">
-        <button class="primary" id="uploadAudioBtn">Upload Audio</button>
-        <button class="primary" id="uploadVideoBtn">Upload Video</button>
-        <button id="addAnnotationButton">Add Annotation</button>
-        <button id="exportBtn">Export Lesson</button>
+        <button class="primary" id="uploadAudioBtn">🎵 Upload Audio</button>
+        <button class="primary" id="uploadVideoBtn">🎥 Upload Video</button>
+        <button id="addAnnotationButton">📝 Add Annotation</button>
+        <button id="exportBtn">📦 Export Lesson</button>
       </div>
+      <div class="emptyHint">Manage lesson media, annotations, and export from one place.</div>
     </div>
 
-    <ul id="instructorList">${instructorItemsHtml}</ul>
+    <div class="card">
+      <div class="section-title">🎵 Uploaded Media</div>
+      <ul id="instructorList">${instructorItemsHtml || ""}</ul>
+      <div id="instructorEmpty" class="emptyState" style="display:none;">
+        No media uploaded yet. Add audio or video to include instructor context in the lesson.
+      </div>
+    </div>
   </div>
 
   <!-- WALKTHROUGHS -->
   <div class="section" id="tab-walkthroughs">
     <div class="card">
-      <div style="font-weight:700; margin-bottom:6px;">Walkthroughs</div>
+      <div class="section-title">📖 Walkthroughs</div>
 
       <div style="margin-bottom: 8px;">
         <label>Title</label>
@@ -495,37 +701,41 @@ function getDashboardHtml(webview, instructorItemsHtml) {
         <textarea id="wtDesc" placeholder="What will this walkthrough help someone understand?"></textarea>
       </div>
 
-      <button id="wtCreate" class="primary">Create Walkthrough</button>
+      <button id="wtCreate" class="primary">➕ Create Walkthrough</button>
       <div id="wtError" class="muted" style="margin-top:6px;"></div>
     </div>
 
     <div id="wtListView">
-      <div style="font-weight:700; margin-bottom: 6px;">Your walkthroughs</div>
-      <ul id="wtList"><li class="muted">Loading…</li></ul>
+      <div class="card">
+        <div class="section-title">📚 Your walkthroughs</div>
+        <div class="emptyHint">Create, open, and manage guided lesson flows for students.</div>
+        <ul id="wtList"><li class="muted">Loading...</li></ul>
+      </div>
     </div>
 
     <div id="wtDetailView" style="display:none;">
-      <div class="row" style="justify-content: space-between; align-items:center; margin-bottom: 6px;">
-        <div style="font-weight:700;" id="wtDetailTitle"></div>
-        <button id="wtBack">← Back</button>
-      </div>
-      <div class="muted" id="wtDetailMeta"></div>
-      <div style="margin: 8px 0;" id="wtDetailDesc"></div>
+      <div class="card">
+        <div class="row" style="justify-content: space-between; align-items:center; margin-bottom: 6px;">
+          <div class="section-title" id="wtDetailTitle"></div>
+          <button id="wtBack">← Back</button>
+        </div>
 
-      <div class="row" style="margin-bottom: 10px;">
-        <button id="wtAddStep" class="primary">Add Step</button>
-        <button id="wtPlay" class="primary">Play Walkthrough</button>
-      </div>
+        <div class="muted" id="wtDetailMeta"></div>
+        <div style="margin: 8px 0;" id="wtDetailDesc"></div>
 
-      <div style="font-weight:700; margin-bottom: 6px;">Steps</div>
-      <ul id="wtSteps"><li class="muted">No steps yet.</li></ul>
+        <div class="row" style="margin-bottom: 10px;">
+          <button id="wtAddStep" class="primary">➕ Add Step</button>
+          <button id="wtPlay" class="primary">▶ Play Walkthrough</button>
+        </div>
+
+        <div class="section-title" style="margin-bottom: 6px;">Steps</div>
+        <ul id="wtSteps"><li class="muted">No steps yet.</li></ul>
+      </div>
     </div>
   </div>
 
 <script>
   const vscode = acquireVsCodeApi();
-
-  // tabs
 
   const tabs = document.querySelectorAll('.tab');
   const sections = {
@@ -541,8 +751,6 @@ function getDashboardHtml(webview, instructorItemsHtml) {
 
   tabs.forEach(t => t.addEventListener('click', () => setTab(t.getAttribute('data-tab'))));
 
-  // instructor tools
-
   document.getElementById("uploadAudioBtn").addEventListener("click", () => vscode.postMessage({ type: "instructor/pickAudio" }));
   document.getElementById("uploadVideoBtn").addEventListener("click", () => vscode.postMessage({ type: "instructor/pickVideo" }));
   document.getElementById("addAnnotationButton").addEventListener("click", () => vscode.postMessage({ type:"instructor/addAnnotation" }));
@@ -554,9 +762,6 @@ function getDashboardHtml(webview, instructorItemsHtml) {
     vscode.postMessage({ type: "instructor/delete", uri: btn.getAttribute('data-uri') });
   });
 
-
-  // timeline tab
-
   const timelineStatus = document.getElementById('timelineStatus');
   const timelineList = document.getElementById('timelineList');
   const refreshBtn = document.getElementById('timelineRefresh');
@@ -564,6 +769,7 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   const nextBtn = document.getElementById('timelineNext');
   const scrubEl = document.getElementById('timelineScrub');
   const currentEl = document.getElementById('timelineCurrent');
+  const instructorEmpty = document.getElementById('instructorEmpty');
 
   let commitsCache = [];
   let activeIndex = 0;
@@ -576,7 +782,10 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   }
 
   function setCurrentLabel() {
-    if (!commitsCache.length) { currentEl.textContent = ''; return; }
+    if (!commitsCache.length) {
+      currentEl.textContent = '';
+      return;
+    }
     const c = commitsCache[activeIndex];
     currentEl.textContent = 'Selected: ' + (c.hash || '').slice(0,7) + ' — ' + (c.message || '');
   }
@@ -601,8 +810,9 @@ function getDashboardHtml(webview, instructorItemsHtml) {
     setCurrentLabel();
 
     timelineList.innerHTML = '';
+
     if (!commitsCache.length) {
-      setTimelineStatus('No commits found.');
+      setTimelineStatus('No commits found. Open a repository file, then refresh the timeline.');
       return;
     }
 
@@ -636,16 +846,19 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   }
 
   function requestCommits() {
-    setTimelineStatus('Loading commits…');
+    setTimelineStatus('Loading commits...');
     vscode.postMessage({ type: 'timeline/requestCommits' });
+  }
+
+  function updateInstructorEmptyState() {
+    const hasItems = !!document.querySelector('#instructorList li');
+    instructorEmpty.style.display = hasItems ? 'none' : 'block';
   }
 
   refreshBtn.addEventListener('click', requestCommits);
   prevBtn.addEventListener('click', () => { userInteracted = true; setActiveIndex(activeIndex - 1); });
   nextBtn.addEventListener('click', () => { userInteracted = true; setActiveIndex(activeIndex + 1); });
   scrubEl.addEventListener('input', () => { userInteracted = true; setActiveIndex(Number(scrubEl.value)); });
-
-  // walkthroughs tab
 
   const wtTitle = document.getElementById('wtTitle');
   const wtDesc = document.getElementById('wtDesc');
@@ -668,8 +881,15 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   let currentWalkthroughId = null;
   let walkthroughCache = [];
 
-  function showWtList() { wtDetailView.style.display = 'none'; wtListView.style.display = 'block'; }
-  function showWtDetail() { wtListView.style.display = 'none'; wtDetailView.style.display = 'block'; }
+  function showWtList() {
+    wtDetailView.style.display = 'none';
+    wtListView.style.display = 'block';
+  }
+
+  function showWtDetail() {
+    wtListView.style.display = 'none';
+    wtDetailView.style.display = 'block';
+  }
 
   function renderWtList(items) {
     walkthroughCache = Array.isArray(items) ? items : [];
@@ -693,7 +913,11 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   }
 
   function renderWtDetail(w) {
-    if (!w) { currentWalkthroughId = null; showWtList(); return; }
+    if (!w) {
+      currentWalkthroughId = null;
+      showWtList();
+      return;
+    }
 
     currentWalkthroughId = w.id;
 
@@ -757,32 +981,30 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   wtAddStep.addEventListener('click', () => { if (!currentWalkthroughId) return; vscode.postMessage({ type: 'walkthrough/addStep', walkthroughId: currentWalkthroughId }); });
   wtPlay.addEventListener('click', () => { if (!currentWalkthroughId) return; vscode.postMessage({ type: 'walkthrough/play', walkthroughId: currentWalkthroughId }); });
 
-  // Incoming messages
-
   window.addEventListener('message', (event) => {
     const msg = event.data;
     if (!msg?.type) return;
 
-    // timeline
     if (msg.type === 'timeline/commits') renderCommits(msg.commits);
     if (msg.type === 'timeline/error') setTimelineStatus(msg.message || 'Unknown error');
 
-    // walkthrough
     if (msg.type === 'walkthrough/init' || msg.type === 'walkthrough/updated') {
       wtError.textContent = '';
       renderWtList((msg.payload && msg.payload.walkthroughs) || []);
       showWtList();
     }
+
     if (msg.type === 'walkthrough/open') {
       wtError.textContent = '';
       renderWtDetail(msg.payload && msg.payload.walkthrough);
     }
+
     if (msg.type === 'walkthrough/error') {
       wtError.textContent = msg.payload || 'Something went wrong.';
     }
   });
 
-  // initial loads
+  updateInstructorEmptyState();
   requestCommits();
   vscode.postMessage({ type: 'walkthrough/requestAll' });
 </script>
