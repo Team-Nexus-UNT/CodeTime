@@ -618,215 +618,454 @@ class StudentHomeViewProvider {
   <title>CodeTime Student</title>
   <style>
     :root {
-      --codetime-green: #2e7d32;
-      --codetime-green-soft: rgba(46, 125, 50, 0.16);
-      --codetime-green-border: rgba(46, 125, 50, 0.65);
+      --ct-green: #2e7d32;
+      --ct-green-soft: rgba(46,125,50,0.16);
+      --ct-green-border: rgba(46,125,50,0.55);
     }
 
-    body { font-family: var(--vscode-font-family); padding: 0; margin: 0; color: var(--vscode-foreground); }
-    .wrap { display: grid; grid-template-columns: 280px 1fr 340px; height: 100vh; }
+    body {
+      font-family: var(--vscode-font-family);
+      padding: 10px;
+      margin: 0;
+      color: var(--vscode-foreground);
+      background: var(--vscode-editor-background);
+    }
 
-    .left { border-right: 1px solid var(--vscode-editorWidget-border); padding: 12px; }
-    .mid  { border-right: 1px solid var(--vscode-editorWidget-border); padding: 12px; overflow:auto; }
-    .right { padding: 12px; overflow:auto; }
+    .wrap {
+      display: grid;
+      grid-template-columns: 280px 1fr 340px;
+      height: 100vh;
+    }
 
-    .brand {
-      font-weight: 800;
-      font-size: 16px;
-      margin-bottom: 10px;
-      padding: 8px 10px;
+    .left, .mid, .right {
+      padding: 10px;
+      overflow: auto;
+    }
+
+    .left {
+      border-right: 1px solid var(--vscode-editorWidget-border);
+    }
+
+    .mid {
+      border-right: 1px solid var(--vscode-editorWidget-border);
+    }
+
+    .header {
+      background: var(--ct-green-soft);
+      border: 1px solid var(--ct-green-border);
       border-radius: 10px;
-      border: 1px solid var(--codetime-green-border);
-      background: var(--codetime-green-soft);
-      color: var(--codetime-green);
+      padding: 10px 12px;
+      margin-bottom: 12px;
     }
 
-    .btn { width: 100%; padding: 9px 10px; border-radius: 999px; border: 1px solid var(--codetime-green-border);
-      background: var(--codetime-green); color: #ffffff; cursor: pointer; }
-    .btn.secondary { background: var(--vscode-button-secondaryBackground, transparent); color: var(--vscode-button-secondaryForeground, var(--vscode-foreground)); }
-    .btn.danger { border-color: rgba(255, 82, 82, 0.45); background: rgba(255, 82, 82, 0.18); color: var(--vscode-foreground); }
-    .btn:active { transform: translateY(1px); }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
 
-    .group { margin-top: 12px; display: grid; gap: 8px; }
-    .label { font-size: 12px; opacity: 0.85; margin-top: 10px; }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--ct-green);
+      box-shadow: 0 0 0 4px var(--ct-green-soft);
+    }
 
-    select, input[type="range"], input[type="text"] {
+    .header-sub {
+      opacity: 0.75;
+      font-size: 12px;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+  .card,
+  .panel {
+    border: 1px solid var(--vscode-editorWidget-border);
+    background: transparent;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stack,
+    .stack8 {
+      display: grid;
+      gap: 8px;
+    }
+
+    .section-title,
+    .h,
+    .cardTitle {
+      font-weight: 700;
+    }
+
+    .section-title {
+      margin-bottom: 8px;
+    }
+
+    .h {
+      margin-bottom: 6px;
+    }
+
+    .label {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .muted,
+    .subtle {
+      opacity: 0.75;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .muted {
+      margin-top: 6px;
+    }
+
+    .field,
+    .mt10 {
+      margin-top: 10px;
+    }
+
+    .mt8 {
+      margin-top: 8px;
+    }
+
+    button,
+    .btn,
+    .smallbtn {
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--vscode-editorWidget-border);
+      background: var(--vscode-button-secondaryBackground, rgba(0,0,0,0.10));
+      color: var(--vscode-foreground);
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    button:hover,
+    .btn:hover,
+    .smallbtn:hover {
+      filter: brightness(1.06);
+    }
+
+    button.primary,
+    .btn.secondary {
+      border-color: var(--ct-green-border);
+      background: var(--ct-green-soft);
+    }
+
+    button.danger {
+      border-color: rgba(255,82,82,0.35);
+      background: rgba(255,82,82,0.10);
+    }
+    
+    button.remove {
+      opacity: 0.8;
+    }
+
+    button.remove:hover {
+      opacity: 1;
+    }
+
+    select,
+    input[type="text"],
+    textarea {
       width: 100%;
       box-sizing: border-box;
-      background: var(--vscode-editor-background);
-      color: var(--vscode-editor-foreground);
+      padding: 6px 8px;
+      margin-top: 4px;
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border, #555);
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .tabs {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .tab {
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 6px 10px;
       border: 1px solid var(--vscode-editorWidget-border);
-      border-radius: 8px;
-      padding: 8px;
+      background: rgba(0,0,0,0.06);
+      font-size: 12px;
+      width: 100%;
+      box-sizing: border-box;
+      color: var(--vscode-foreground);
+      text-align: left;
+      font-family: inherit;
+    }
+
+
+    .tab.active {
+      border-color: var(--ct-green-border);
+      background: var(--ct-green-soft);
+    }
+
+    .scrubberRow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 6px 0 0;
+    }
+
+    .range {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid var(--vscode-editorWidget-border);
       outline: none;
     }
 
-    .tabs { display: grid; gap: 8px; margin-top: 10px; }
-    .tabbtn { width: 100%; padding: 10px; border-radius: 10px; cursor: pointer;
-      border: 1px solid var(--vscode-editorWidget-border); background: var(--vscode-editor-background); color: var(--vscode-foreground); text-align:left; }
-    .tabbtn.active { outline: 2px solid var(--vscode-focusBorder); }
-
-    .panel { border: 1px solid var(--vscode-editorWidget-border); border-radius: 12px; padding: 10px; margin-bottom: 12px; }
-    .h { font-weight: 800; margin-bottom: 6px; }
-    .muted { opacity: 0.8; font-size: 12px; }
-
-    .mediaItem { border: 1px solid var(--vscode-editorWidget-border); border-radius: 12px; padding: 10px; margin-top: 10px; }
-    .mediaItem .t { font-weight: 700; margin-bottom: 6px; }
-
-    .annItem { border: 1px solid var(--vscode-editorWidget-border); border-radius: 12px; padding: 10px; margin-top: 10px; }
-    .annItem .t { font-weight: 700; }
-    .smallbtn { margin-top: 8px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--vscode-editorWidget-border);
-      background: var(--vscode-button-secondaryBackground, transparent); cursor: pointer; width: fit-content; }
-
-    .commitMeta { display:flex; justify-content: space-between; gap: 10px; align-items:center; flex-wrap: wrap; }
-    .commitLine { font-family: var(--vscode-editor-font-family); font-size: 12px; opacity:0.9; }
-
-    textarea { width:100%; min-height: 180px; resize: vertical; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground);
-      border: 1px solid var(--vscode-editorWidget-border); border-radius: 12px; padding: 10px; box-sizing: border-box; }
-
-    .sliderRow{display:flex;align-items:center;gap:8px;}
-    .iconBtn{
-      background: var(--vscode-button-secondaryBackground, transparent);
-      border: 1px solid var(--vscode-editorWidget-border);
-      color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
-      border-radius: 8px;
-      padding: 6px 10px;
+    .range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--ct-green);
+      border: 2px solid rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 4px var(--ct-green-soft);
       cursor: pointer;
     }
-    .iconBtn:hover{filter: brightness(1.05);}
-    .iconBtn:disabled{opacity:.4;cursor:not-allowed;}
-    .sliderRow input[type="range"]{flex:1;}
 
-    .card { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px; margin-top: 10px; }
-    .cardTitle { font-weight: 700; }
-    .steps { margin: 8px 0 0 18px; padding: 0; }
-    .steps li { margin: 6px 0; }
-
-    .stepDetail {
-      margin-top: 10px;
-      border: 1px solid var(--codetime-green-border);
-      background: var(--codetime-green-soft);
-      border-radius: 12px;
+    .commitCard,
+    .mediaItem,
+    .annItem,
+    .stepDetail,
+    .emptyState {
+      border: 1px solid var(--vscode-editorWidget-border);
+      border-radius: 10px;
+      background: rgba(0,0,0,0.02);
       padding: 10px;
+      margin-top: 10px;
+    }
+
+    .commitMeta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .commitLine {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .mediaItem .t,
+    .annItem .t {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .steps {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+
+    .steps li {
+      margin: 8px 0;
+    }
+
+    .smallbtn {
+      margin-top: 8px;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="left">
-      <div class="brand">CodeTime</div>
-      <div class="group">
-        <button class="btn" id="importBtn">Import Lesson</button>
-        <button class="btn secondary" id="homeBtn">Back to Home</button>
+      <div class="header">
+        <div class="header-title"><span class="dot"></span><div>Student Dashboard</div></div>
+        <div class="header-sub">Load an instructor lesson, replay commits, and review walkthrough steps.</div>
       </div>
 
-      <div class="label">Imported Lesson</div>
-      <select id="lessonSelect">
-        ${lessons
-          .map(
-            (l) =>
-              `<option value="${escapeHtml(l.id)}" ${l.id === activeLessonId ? "selected" : ""}>${escapeHtml(
-                l.title
-              )}</option>`
-          )
-          .join("")}
-      </select>
-      <div class="group" style="margin-top:8px;">
-        <button class="btn danger" id="removeLessonBtn">Remove Lesson</button>
-      </div>
+      <div class="card">
+        <div class="section-title">Lesson</div>
+        <div class="stack">
+          <button class="primary" id="importBtn">Import Lesson</button>
+          <button id="homeBtn">Back to Home</button>
+        </div>
 
-      <div class="label">File</div>
-      <select id="fileSelect">
-        ${(files && files.length
-          ? files
-              .map(
-                (f) =>
-                  `<option value="${escapeHtml(f)}" ${f === activeFile ? "selected" : ""}>${escapeHtml(f)}</option>`
-              )
-              .join("")
-          : `<option value="">(no files found)</option>`)}
-      </select>
+        <div class="field">
+          <div class="label">Imported Lesson</div>
+          <select id="lessonSelect">
+            ${lessons.length
+              ? lessons
+                  .map(
+                    (l) =>
+                      `<option value="${escapeHtml(l.id)}" ${l.id === activeLessonId ? "selected" : ""}>${escapeHtml(l.title)}</option>`
+                  )
+                  .join("")
+              : `<option value="">(no lessons imported)</option>`}
+          </select>
+        </div>
 
-      <div class="label">Timeline</div>
-      <div class="muted">${commits.length ? `${commitIndex + 1} / ${commits.length}` : "No commits loaded"}</div>
-      <div class="sliderRow">
-        <button id="commitPrev" class="iconBtn" ${commits.length ? "" : "disabled"} title="Previous commit">◀</button>
-        <input id="commitSlider" type="range" min="0" max="${Math.max(0, commits.length - 1)}" value="${Math.min(commitIndex, Math.max(0, commits.length - 1))}" ${commits.length ? "" : "disabled"} />
-        <button id="commitNext" class="iconBtn" ${commits.length ? "" : "disabled"} title="Next commit">▶</button>
-      </div>
-
-      <div class="tabs">
-        <button class="tabbtn ${activeTab === "timeline" ? "active" : ""}" data-tab="timeline">Commit Playback</button>
-        <button class="tabbtn ${activeTab === "annotations" ? "active" : ""}" data-tab="annotations">Annotations</button>
-        <button class="tabbtn ${activeTab === "walkthroughs" ? "active" : ""}" data-tab="walkthroughs">Walkthroughs</button>
-      </div>
-
-      <div class="label muted">Student Mode is read-only.</div>
-    </div>
-
-    <div class="mid">
-      <div class="panel">
-        <div class="h">Commit Playback</div>
-        ${renderCommitMeta(commits, commitIndex)}
-        <div style="margin-top:10px;">
-          <button class="btn secondary" id="openBtn">Open code (read-only)</button>
-          <div class="muted" style="margin-top:6px;">Opens the selected file at the selected commit.</div>
+        <div class="field">
+          <button class="remove" id="removeLessonBtn">Remove Lesson</button>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="h">Media for this commit</div>
-        ${
-          mediaItems.length
-            ? mediaItems.map((m) => renderMediaItem(m)).join("")
-            : `<div class="muted">No media attached to this commit.</div>`
-        }
+      <div class="card">
+        <div class="section-title">Playback</div>
+
+        <div>
+          <div class="label">File</div>
+          <select id="fileSelect">
+            ${(files && files.length
+              ? files
+                  .map(
+                    (f) =>
+                      `<option value="${escapeHtml(f)}" ${f === activeFile ? "selected" : ""}>${escapeHtml(f)}</option>`
+                  )
+                  .join("")
+              : `<option value="">(no files found)</option>`)}
+          </select>
+        </div>
+
+        <div class="field">
+          <div class="label">Timeline</div>
+          <div class="muted">${commits.length ? `Commit ${commitIndex + 1} of ${commits.length}` : "No commits loaded"}</div>
+          <div class="scrubberRow">
+            <button id="commitPrev">Prev</button>
+            <input id="commitSlider" class="range" type="range" min="0" max="${Math.max(0, commits.length - 1)}" value="${Math.min(commitIndex, Math.max(0, commits.length - 1))}" ${commits.length ? "" : "disabled"} />
+            <button id="commitNext">Next</button>
+          </div>
+        </div>
       </div>
 
+      <div class="card">
+        <div class="section-title">Learning Tools</div>
+        <div class="tabs">
+          <button type="button" class="tab ${activeTab === "timeline" ? "active" : ""}" data-tab="timeline">Commit Playback</button>
+          <button type="button" class="tab ${activeTab === "annotations" ? "active" : ""}" data-tab="annotations">Annotations</button>
+          <button type="button" class="tab ${activeTab === "walkthroughs" ? "active" : ""}" data-tab="walkthroughs">Walkthroughs</button>
+        </div>
+        <div class="muted">Student Mode is read-only.</div>
+      </div>
+    </div>
+
+    <div class="mid">
       ${
-        activeTab === "annotations"
-          ? `<div class="panel">
-               <div class="h">Annotations</div>
-               ${renderAnnotations(this.state.annotations)}
-             </div>`
-          : activeTab === "walkthroughs"
-          ? `<div class="panel">
-               <div class="h">Walkthroughs</div>
+        activeTab === "timeline"
+          ? `
+            <div class="panel">
+              <div class="h">Commit Playback</div>
+              <div class="subtle">Open the selected file at the current point in the lesson timeline.</div>
 
-               <input id="walkthroughSearchTitle" type="text"
-                 placeholder="Search by title..."
-                 value="${escapeHtml(titleValue)}" />
+              <div class="commitCard">
+                ${renderCommitMeta(commits, commitIndex)}
+              </div>
 
-               <div style="height:8px;"></div>
+              <div class="mt10">
+                <button class="btn secondary" id="openBtn">Open code (read-only)</button>
+                <div class="muted mt8">Opens the selected file at the selected commit.</div>
+              </div>
+            </div>
 
-               <input id="walkthroughSearchKeyword" type="text"
-                 placeholder="Search by keyword (steps, description, file)..."
-                 value="${escapeHtml(keywordValue)}" />
+            <div class="panel">
+              <div class="h">Media for This Commit</div>
+              <div class="subtle">Audio and video attached to the currently selected commit.</div>
+              ${
+                mediaItems.length
+                  ? mediaItems.map((m) => renderMediaItem(m)).join("")
+                  : `<div class="emptyState">No media is attached to this commit yet.</div>`
+              }
+            </div>
+          `
+          : activeTab === "annotations"
+          ? `
+            <div class="panel">
+              <div class="h">Annotations</div>
+              <div class="subtle">Review lesson annotations linked to files and lines.</div>
+              ${renderAnnotations(this.state.annotations)}
+            </div>
+          `
+          : `
+            <div class="panel">
+              <div class="h">Walkthroughs</div>
+              <div class="subtle">Browse walkthroughs for the current commit and jump directly to steps.</div>
 
-               <div id="stepDetail" class="stepDetail" style="display:none;"></div>
+              <div class="field">
+                <div class="label">Search by title</div>
+                <input id="walkthroughSearchTitle" type="text"
+                  placeholder="Search by title..."
+                  value="${escapeHtml(titleValue)}" />
+              </div>
 
-               <div id="walkthroughList">
-                 ${renderWalkthroughsForCommit(
-                   this.state.walkthroughs,
-                   commits?.[commitIndex]?.hash,
-                   titleValue,
-                   keywordValue
-                 )}
-               </div>
-             </div>`
-          : ""
+              <div class="field">
+                <div class="label">Search by keyword</div>
+                <input id="walkthroughSearchKeyword" type="text"
+                  placeholder="Search steps, descriptions, or file names..."
+                  value="${escapeHtml(keywordValue)}" />
+              </div>
+
+              <div id="stepDetail" class="stepDetail" style="display:none;"></div>
+
+              <div id="walkthroughList">
+                ${renderWalkthroughsForCommit(
+                  this.state.walkthroughs,
+                  commits?.[commitIndex]?.hash,
+                  titleValue,
+                  keywordValue
+                )}
+              </div>
+            </div>
+          `
       }
     </div>
 
     <div class="right">
       <div class="panel">
         <div class="h">LLM Assistant</div>
-        <div class="muted">Explain code at the current timeline position (placeholder).</div>
-        <div style="margin-top:10px;">
+        <div class="subtle">Ask about the current file, selected lines, or the selected commit.</div>
+
+        <div class="field">
+          <div class="label">Question</div>
           <input id="llmPrompt" type="text" placeholder="Ask about the current code..." />
-          <textarea id="llmOutput" style="margin-top:10px;" readonly>Response will appear here…</textarea>
-          <button class="btn secondary" style="margin-top:10px;" id="llmAskBtn">Ask</button>
-          <button class="btn secondary" style="margin-top:10px;" id="llmClearBtn">Refresh</button>
+        </div>
+
+        <div class="field">
+          <div class="label">Response</div>
+          <textarea id="llmOutput" readonly>Response will appear here…</textarea>
+        </div>
+
+        <div class="stack8 mt10">
+          <button class="btn secondary" id="llmAskBtn">Ask</button>
+          <button class="btn secondary" id="llmClearBtn">Refresh</button>
         </div>
       </div>
     </div>
@@ -872,7 +1111,7 @@ class StudentHomeViewProvider {
       slider.dispatchEvent(new Event("input"));
     });
 
-    for (const btn of document.querySelectorAll(".tabbtn")) {
+    for (const btn of document.querySelectorAll(".tab")) {
       btn.addEventListener("click", () => vscode.postMessage({ type: "student.setTab", tab: btn.dataset.tab }));
     }
 
@@ -883,9 +1122,8 @@ class StudentHomeViewProvider {
       btn.addEventListener("click", () => {
         vscode.postMessage({ type: "student.openAnnotation", annotationId: btn.dataset.annotationId });
       });
-    }
+    });
 
-    // FR17: walkthrough search inputs (title + keyword)
     const wtTitle = document.getElementById("walkthroughSearchTitle");
     const wtKeyword = document.getElementById("walkthroughSearchKeyword");
     const stepDetailEl = document.getElementById("stepDetail");
@@ -921,8 +1159,6 @@ class StudentHomeViewProvider {
         return;
       }
 
-      // Instructor exports store step body as 'note' and the display label as 'label'.
-      // Support multiple possible fields so Student Mode always shows the step text.
       const text = (step.text || step.note || step.label || step.title || step.description || "").toString();
       const fp = (step.filePath || step.file || step.path || "").toString();
       const ln = (typeof step.line === "number" ? step.line : (typeof step.lineNumber === "number" ? step.lineNumber : null));
@@ -943,7 +1179,6 @@ class StudentHomeViewProvider {
         (meta ? ('<div class="muted">' + escapeHtml(meta) + '</div>') : "");
     }
 
-    // Restore focus + selected step after a webview re-render
     try {
       const st = vscode.getState() || {};
       if (st.selectedStep) renderStepDetail(st.selectedStep);
@@ -958,47 +1193,37 @@ class StudentHomeViewProvider {
       }
     } catch {}
 
-    function sendWalkthroughSearch() {
-      vscode.postMessage({
-        type: "student.walkthrough.search",
-        title: wtTitle ? wtTitle.value : "",
-        keyword: wtKeyword ? wtKeyword.value : "",
-      });
-    }
-
     let wtTimer = null;
 
-function sendWalkthroughSearchDebounced() {
-  if (wtTimer) clearTimeout(wtTimer);
+    function sendWalkthroughSearchDebounced() {
+      if (wtTimer) clearTimeout(wtTimer);
 
-  // Persist focus/caret so typing doesn't get interrupted by a re-render
-  try {
-    const prev = vscode.getState() || {};
-    const { focusId, selStart, selEnd } = getFocusableState();
-    vscode.setState({
-      ...prev,
-      walkthroughSearchTitle: wtTitle ? wtTitle.value : "",
-      walkthroughSearchKeyword: wtKeyword ? wtKeyword.value : "",
-      selectedStep: prev.selectedStep || null,
-      focusId,
-      selStart,
-      selEnd,
-    });
-  } catch {}
+      try {
+        const prev = vscode.getState() || {};
+        const { focusId, selStart, selEnd } = getFocusableState();
+        vscode.setState({
+          ...prev,
+          walkthroughSearchTitle: wtTitle ? wtTitle.value : "",
+          walkthroughSearchKeyword: wtKeyword ? wtKeyword.value : "",
+          selectedStep: prev.selectedStep || null,
+          focusId,
+          selStart,
+          selEnd,
+        });
+      } catch {}
 
-  wtTimer = setTimeout(() => {
-    vscode.postMessage({
-      type: "student.walkthrough.search",
-      title: wtTitle ? wtTitle.value : "",
-      keyword: wtKeyword ? wtKeyword.value : "",
-    });
-  }, 250);
-}
+      wtTimer = setTimeout(() => {
+        vscode.postMessage({
+          type: "student.walkthrough.search",
+          title: wtTitle ? wtTitle.value : "",
+          keyword: wtKeyword ? wtKeyword.value : "",
+        });
+      }, 250);
+    }
 
-if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
-if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
+    if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
+    if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
 
-    // FR17: Open Step buttons (event delegation so it still works after re-render)
     document.addEventListener("click", (e) => {
       const btn = e.target.closest(".wtOpenStep");
       if (!btn) return;
@@ -1007,7 +1232,6 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
         const raw = btn.getAttribute("data-step");
         const step = JSON.parse(raw);
 
-        // Show the step details in the UI immediately
         renderStepDetail(step);
         try {
           const prev = vscode.getState() || {};
@@ -1027,7 +1251,6 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
       }
     });
 
-    // LLM elements (needed for message handler)
     const askBtn = document.getElementById("llmAskBtn");
     const promptEl = document.getElementById("llmPrompt");
     const outputEl = document.getElementById("llmOutput");
@@ -1062,7 +1285,7 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
 
     function renderCommitMeta(commits, idx) {
       if (!commits || commits.length === 0) {
-        return `<div class="muted">No commit data loaded. (Export should include repo.bundle and referencedCommits.)</div>`;
+        return `<div class="muted">No commit data loaded. Export should include repo.bundle and referenced commits.</div>`;
       }
       const c = commits[Math.min(idx, commits.length - 1)];
       return `
@@ -1088,7 +1311,7 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
         <div class="mediaItem">
           <div class="t">${title}</div>
           <div class="muted">${meta}</div>
-          ${isVideo ? `<video controls style="width:100%; margin-top:8px;"><source src="${uri}"></video>` : ""}
+          ${isVideo ? `<video controls style="width:100%; margin-top:8px; border-radius:10px;"><source src="${uri}"></video>` : ""}
           ${isAudio ? `<audio controls style="width:100%; margin-top:8px;"><source src="${uri}"></audio>` : ""}
           ${!isAudio && !isVideo ? `<a href="${uri}">Open media</a>` : ""}
         </div>
@@ -1114,10 +1337,9 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
       return out;
     }
 
-    // UPDATED: accepts titleTerm + keywordTerm
     function renderWalkthroughsForCommit(walkthroughs, commitHash, titleTerm, keywordTerm) {
       const list = walkthroughsForCommit(walkthroughs, commitHash);
-      if (!commitHash) return `<div class="muted">No commits loaded.</div>`;
+      if (!commitHash) return `<div class="emptyState">No commits loaded yet.</div>`;
 
       const t = (titleTerm || "").trim().toLowerCase();
       const k = (keywordTerm || "").trim().toLowerCase();
@@ -1126,10 +1348,8 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
         const title = String(w.title || "").toLowerCase();
         const desc = String(w.description || "").toLowerCase();
 
-        // title filter
         if (t && !title.includes(t)) return false;
 
-        // keyword filter (search deeper)
         if (k) {
           const steps = Array.isArray(w.steps) ? w.steps : [];
           const stepBlob = steps
@@ -1158,9 +1378,9 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
               ? `title="${escapeHtml(titleTerm)}"`
               : `keyword="${escapeHtml(keywordTerm)}"`;
 
-          return `<div class="muted">No walkthrough matches (${what}) for this commit.</div>`;
+          return `<div class="emptyState">No walkthrough matches (${what}) for this commit.</div>`;
         }
-        return `<div class="muted">No walkthrough for this commit.</div>`;
+        return `<div class="emptyState">No walkthrough is available for this commit.</div>`;
       }
 
       return filtered
@@ -1209,7 +1429,7 @@ if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounce
 
     function renderAnnotations(annotations) {
       if (!annotations || annotations.length === 0) {
-        return `<div class="muted">No annotations found in this lesson export.</div>`;
+        return `<div class="emptyState">No annotations were found in this lesson export.</div>`;
       }
       return annotations
         .map(
