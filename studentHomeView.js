@@ -809,9 +809,10 @@ class StudentHomeViewProvider {
       }
 
       .tabs {
-        display: grid;
+        display: flex;
         gap: 8px;
         margin-bottom: 10px;
+        flex-wrap: wrap;
       }
 
       .tab {
@@ -821,11 +822,11 @@ class StudentHomeViewProvider {
         border: 1px solid var(--vscode-editorWidget-border);
         background: rgba(0,0,0,0.06);
         font-size: 12px;
-        width: 100%;
-        box-sizing: border-box;
         color: var(--vscode-foreground);
         text-align: left;
         font-family: inherit;
+        width: auto;
+        box-sizing: border-box;
       }
 
       .tab.active {

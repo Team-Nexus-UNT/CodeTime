@@ -198,12 +198,30 @@ class HomeViewProvider {
     const initialMode = this.context.globalState.get("codetime.mode") || "none";
     render(initialMode);
 
+    view.onDidChangeVisibility(async () => {
+      if (!view.visible) return;
+
+      const mode = this.context.globalState.get("codetime.mode") || "none";
+      render(mode);
+      await postMode();
+    });
+    
     view.webview.onDidReceiveMessage(async (msg) => {
-      if (msg?.type === "student") {
+      if (!msg?.type) return;
+
+      if (msg.type === "student") {
         await vscode.commands.executeCommand("codetime.chooseStudent");
-      } else if (msg?.type === "instructor") {
+        await postMode();
+        return;
+      }
+
+      if (msg.type === "instructor") {
         await vscode.commands.executeCommand("codetime.chooseInstructor");
-      } else if (msg?.type === "refreshMode") {
+        await postMode();
+        return;
+      }
+
+      if (msg.type === "refreshMode") {
         await postMode();
       }
     });
