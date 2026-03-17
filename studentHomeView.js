@@ -609,679 +609,719 @@ class StudentHomeViewProvider {
     const keywordValue = this.state.walkthroughSearchKeyword || "";
 
     return /* html */ `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; img-src ${webview.cspSource} https: data:; media-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CodeTime Student</title>
-  <style>
-    :root {
-      --ct-green: #2e7d32;
-      --ct-green-soft: rgba(46,125,50,0.16);
-      --ct-green-border: rgba(46,125,50,0.55);
-    }
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src ${webview.cspSource} https: data:; media-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeTime Student</title>
+    <style>
+      :root {
+        --ct-green: #2e7d32;
+        --ct-green-soft: rgba(46,125,50,0.16);
+        --ct-green-border: rgba(46,125,50,0.55);
+        --ct-red-soft: rgba(255,82,82,0.10);
+        --ct-red-border: rgba(255,82,82,0.35);
+      }
 
-    body {
-      font-family: var(--vscode-font-family);
-      padding: 10px;
-      margin: 0;
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
-    }
+      body {
+        font-family: var(--vscode-font-family);
+        padding: 10px;
+        margin: 0;
+        color: var(--vscode-foreground);
+        background: var(--vscode-editor-background);
+      }
 
-    .wrap {
-      display: grid;
-      grid-template-columns: 280px 1fr 340px;
-      height: 100vh;
-    }
+      .wrap {
+        display: grid;
+        grid-template-columns: 280px 1fr 340px;
+        height: 100vh;
+      }
 
-    .left, .mid, .right {
-      padding: 10px;
-      overflow: auto;
-    }
+      .left, .mid, .right {
+        padding: 10px;
+        overflow: auto;
+      }
 
-    .left {
-      border-right: 1px solid var(--vscode-editorWidget-border);
-    }
+      .left {
+        border-right: 1px solid var(--vscode-editorWidget-border);
+      }
 
-    .mid {
-      border-right: 1px solid var(--vscode-editorWidget-border);
-    }
+      .mid {
+        border-right: 1px solid var(--vscode-editorWidget-border);
+      }
 
-    .header {
-      background: var(--ct-green-soft);
-      border: 1px solid var(--ct-green-border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-    }
+      .header {
+        background: var(--ct-green-soft);
+        border: 1px solid var(--ct-green-border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+      }
 
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 700;
-    }
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+      }
 
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: var(--ct-green);
-      box-shadow: 0 0 0 4px var(--ct-green-soft);
-    }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--ct-green);
+        box-shadow: 0 0 0 4px var(--ct-green-soft);
+      }
 
-    .header-sub {
-      opacity: 0.75;
-      font-size: 12px;
-      margin-top: 6px;
-      line-height: 1.4;
-    }
+      .header-sub {
+        opacity: 0.75;
+        font-size: 12px;
+        margin-top: 6px;
+        line-height: 1.4;
+      }
 
-  .card,
-  .panel {
-    border: 1px solid var(--vscode-editorWidget-border);
-    background: transparent;
-    border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 12px;
-  }
+      .card,
+      .panel {
+        border: 1px solid var(--vscode-editorWidget-border);
+        background: transparent;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
 
-    .row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-    .stack,
-    .stack8 {
-      display: grid;
-      gap: 8px;
-    }
+      .stack,
+      .stack8 {
+        display: grid;
+        gap: 8px;
+      }
 
-    .section-title,
-    .h,
-    .cardTitle {
-      font-weight: 700;
-    }
+      .section-title,
+      .h,
+      .cardTitle {
+        font-weight: 700;
+      }
 
-    .section-title {
-      margin-bottom: 8px;
-    }
+      .section-title {
+        margin-bottom: 8px;
+      }
 
-    .h {
-      margin-bottom: 6px;
-    }
+      .h {
+        margin-bottom: 6px;
+      }
 
-    .label {
-      font-size: 12px;
-      opacity: 0.8;
-      margin-bottom: 4px;
-    }
+      .label {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }
 
-    .muted,
-    .subtle {
-      opacity: 0.75;
-      font-size: 12px;
-      line-height: 1.4;
-    }
+      .muted,
+      .subtle {
+        opacity: 0.75;
+        font-size: 12px;
+        line-height: 1.4;
+      }
 
-    .muted {
-      margin-top: 6px;
-    }
+      .muted {
+        margin-top: 6px;
+      }
 
-    .field,
-    .mt10 {
-      margin-top: 10px;
-    }
+      .field,
+      .mt10 {
+        margin-top: 10px;
+      }
 
-    .mt8 {
-      margin-top: 8px;
-    }
+      .mt8 {
+        margin-top: 8px;
+      }
 
-    button,
-    .btn,
-    .smallbtn {
-      cursor: pointer;
-      border-radius: 8px;
-      padding: 6px 10px;
-      border: 1px solid var(--vscode-editorWidget-border);
-      background: var(--vscode-button-secondaryBackground, rgba(0,0,0,0.10));
-      color: var(--vscode-foreground);
-      font-family: inherit;
-      font-size: 12px;
-    }
+      .emptyHint {
+        margin-top: 6px;
+        font-size: 12px;
+        opacity: 0.75;
+        line-height: 1.4;
+      }
 
-    button:hover,
-    .btn:hover,
-    .smallbtn:hover {
-      filter: brightness(1.06);
-    }
+      button,
+      .btn,
+      .smallbtn {
+        cursor: pointer;
+        border-radius: 8px;
+        padding: 6px 10px;
+        border: 1px solid var(--vscode-editorWidget-border);
+        background: var(--vscode-button-secondaryBackground, rgba(0,0,0,0.10));
+        color: var(--vscode-foreground);
+        font-family: inherit;
+        font-size: 12px;
+      }
 
-    button.primary,
-    .btn.secondary {
-      border-color: var(--ct-green-border);
-      background: var(--ct-green-soft);
-    }
+      button:hover,
+      .btn:hover,
+      .smallbtn:hover {
+        filter: brightness(1.06);
+      }
 
-    button.danger {
-      border-color: rgba(255,82,82,0.35);
-      background: rgba(255,82,82,0.10);
-    }
-    
-    button.remove {
-      opacity: 0.8;
-    }
+      button.primary,
+      .btn.secondary {
+        border-color: var(--ct-green-border);
+        background: var(--ct-green-soft);
+      }
 
-    button.remove:hover {
-      opacity: 1;
-    }
+      button.danger {
+        border-color: var(--ct-red-border);
+        background: var(--ct-red-soft);
+      }
 
-    select,
-    input[type="text"],
-    textarea {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 6px 8px;
-      margin-top: 4px;
-      background: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border, #555);
-      border-radius: 6px;
-      font-size: 12px;
-      font-family: inherit;
-    }
+      button.remove {
+        opacity: 0.9;
+      }
 
-    textarea {
-      resize: vertical;
-      min-height: 120px;
-    }
+      button.remove:hover {
+        opacity: 1;
+      }
 
-    .tabs {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
+      select,
+      input[type="text"],
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        margin-top: 4px;
+        background: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+        border: 1px solid var(--vscode-input-border, #555);
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: inherit;
+      }
 
-    .tab {
-      cursor: pointer;
-      border-radius: 10px;
-      padding: 6px 10px;
-      border: 1px solid var(--vscode-editorWidget-border);
-      background: rgba(0,0,0,0.06);
-      font-size: 12px;
-      width: 100%;
-      box-sizing: border-box;
-      color: var(--vscode-foreground);
-      text-align: left;
-      font-family: inherit;
-    }
+      textarea {
+        resize: vertical;
+        min-height: 120px;
+      }
 
+      .tabs {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
 
-    .tab.active {
-      border-color: var(--ct-green-border);
-      background: var(--ct-green-soft);
-    }
+      .tab {
+        cursor: pointer;
+        border-radius: 10px;
+        padding: 6px 10px;
+        border: 1px solid var(--vscode-editorWidget-border);
+        background: rgba(0,0,0,0.06);
+        font-size: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        color: var(--vscode-foreground);
+        text-align: left;
+        font-family: inherit;
+      }
 
-    .scrubberRow {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      margin: 6px 0 0;
-    }
+      .tab.active {
+        border-color: var(--ct-green-border);
+        background: var(--ct-green-soft);
+      }
 
-    .range {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.10);
-      border: 1px solid var(--vscode-editorWidget-border);
-      outline: none;
-    }
+      .scrubberRow {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin: 10px 0 0;
+      }
 
-    .range::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      background: var(--ct-green);
-      border: 2px solid rgba(0,0,0,0.35);
-      box-shadow: 0 0 0 4px var(--ct-green-soft);
-      cursor: pointer;
-    }
+      .range {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid var(--vscode-editorWidget-border);
+        outline: none;
+      }
 
-    .commitCard,
-    .mediaItem,
-    .annItem,
-    .stepDetail,
-    .emptyState {
-      border: 1px solid var(--vscode-editorWidget-border);
-      border-radius: 10px;
-      background: rgba(0,0,0,0.02);
-      padding: 10px;
-      margin-top: 10px;
-    }
+      .range::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--ct-green);
+        border: 2px solid rgba(0,0,0,0.35);
+        box-shadow: 0 0 0 4px var(--ct-green-soft);
+        cursor: pointer;
+      }
 
-    .commitMeta {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
+      .timelineMeta {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: 0.8;
+      }
 
-    .commitLine {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 12px;
-      opacity: 0.9;
-    }
+      .commitCard,
+      .mediaItem,
+      .annItem,
+      .stepDetail,
+      .emptyState {
+        border: 1px solid var(--vscode-editorWidget-border);
+        border-radius: 10px;
+        background: rgba(0,0,0,0.02);
+        padding: 10px;
+        margin-top: 10px;
+      }
 
-    .mediaItem .t,
-    .annItem .t {
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
+      .commitMeta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
 
-    .steps {
-      margin: 8px 0 0 18px;
-      padding: 0;
-    }
+      .commitLine {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        opacity: 0.9;
+      }
 
-    .steps li {
-      margin: 8px 0;
-    }
+      .mediaItem .t,
+      .annItem .t {
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
 
-    .smallbtn {
-      margin-top: 8px;
-    }
+      .steps {
+        margin: 8px 0 0 18px;
+        padding: 0;
+      }
 
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="left">
-      <div class="header">
-        <div class="header-title"><span class="dot"></span><div>Student Dashboard</div></div>
-        <div class="header-sub">Load an instructor lesson, replay commits, and review walkthrough steps.</div>
+      .steps li {
+        margin: 8px 0;
+      }
+
+      .smallbtn {
+        margin-top: 8px;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="left">
+        <div class="header">
+          <div class="header-title"><span class="dot"></span><div>🎓 Student Dashboard</div></div>
+          <div class="header-sub">Load an instructor lesson, replay commits, and review walkthrough steps.</div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">📦 Lesson</div>
+          <div class="stack">
+            <button class="primary" id="importBtn">📥 Import Lesson</button>
+            <button id="homeBtn">← Back to Home</button>
+          </div>
+
+          <div class="field">
+            <div class="label">Imported Lesson</div>
+            <select id="lessonSelect">
+              ${lessons.length
+                ? lessons
+                    .map(
+                      (l) =>
+                        `<option value="${escapeHtml(l.id)}" ${l.id === activeLessonId ? "selected" : ""}>${escapeHtml(l.title)}</option>`
+                    )
+                    .join("")
+                : `<option value="">No lessons imported yet</option>`}
+            </select>
+            ${lessons.length ? `` : `<div class="emptyHint">Import a lesson package to begin Student Mode.</div>`}
+          </div>
+
+          <div class="field">
+            <button class="remove danger" id="removeLessonBtn">🗑 Remove Lesson</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">🕒 Playback</div>
+
+          <div>
+            <div class="label">File</div>
+            <select id="fileSelect">
+              ${(files && files.length
+                ? files
+                    .map(
+                      (f) =>
+                        `<option value="${escapeHtml(f)}" ${f === activeFile ? "selected" : ""}>${escapeHtml(f)}</option>`
+                    )
+                    .join("")
+                : `<option value="">No files available</option>`)}
+            </select>
+            ${files && files.length ? `` : `<div class="emptyHint">Files will appear after a lesson is imported and loaded.</div>`}
+          </div>
+
+          <div class="field">
+            <div class="label">Timeline</div>
+            <div class="muted">
+              ${
+                commits.length
+                  ? `Commit ${commitIndex + 1} of ${commits.length}`
+                  : "No commits loaded yet. Import a lesson to replay its timeline."
+              }
+            </div>
+
+            <div class="scrubberRow">
+              <button id="commitPrev">← Prev</button>
+              <input
+                id="commitSlider"
+                class="range"
+                type="range"
+                min="0"
+                max="${Math.max(0, commits.length - 1)}"
+                value="${Math.min(commitIndex, Math.max(0, commits.length - 1))}"
+                ${commits.length ? "" : "disabled"}
+              />
+              <button id="commitNext">Next →</button>
+            </div>
+
+            <div class="timelineMeta">
+              <span>${commits.length ? "Oldest" : ""}</span>
+              <span>${commits.length ? "Newest" : ""}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">📚 Learning Tools</div>
+          <div class="tabs">
+            <button type="button" class="tab ${activeTab === "timeline" ? "active" : ""}" data-tab="timeline">▶ Commit Playback</button>
+            <button type="button" class="tab ${activeTab === "annotations" ? "active" : ""}" data-tab="annotations">📝 Annotations</button>
+            <button type="button" class="tab ${activeTab === "walkthroughs" ? "active" : ""}" data-tab="walkthroughs">📖 Walkthroughs</button>
+          </div>
+          <div class="emptyHint">🔒 Student Mode is read-only. You can replay, review, and ask questions.</div>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="section-title">Lesson</div>
-        <div class="stack">
-          <button class="primary" id="importBtn">Import Lesson</button>
-          <button id="homeBtn">Back to Home</button>
-        </div>
+      <div class="mid">
+        ${
+          activeTab === "timeline"
+            ? `
+              <div class="panel">
+                <div class="h">▶ Commit Playback</div>
+                <div class="subtle">Open the selected file at the current point in the lesson timeline.</div>
 
-        <div class="field">
-          <div class="label">Imported Lesson</div>
-          <select id="lessonSelect">
-            ${lessons.length
-              ? lessons
-                  .map(
-                    (l) =>
-                      `<option value="${escapeHtml(l.id)}" ${l.id === activeLessonId ? "selected" : ""}>${escapeHtml(l.title)}</option>`
-                  )
-                  .join("")
-              : `<option value="">(no lessons imported)</option>`}
-          </select>
-        </div>
+                <div class="commitCard">
+                  ${renderCommitMeta(commits, commitIndex)}
+                </div>
 
-        <div class="field">
-          <button class="remove" id="removeLessonBtn">Remove Lesson</button>
-        </div>
+                <div class="mt10">
+                  <button class="btn secondary" id="openBtn">📄 Open code (read-only)</button>
+                  <div class="muted mt8">Opens the selected file at the selected commit.</div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="h">🎵 Media for This Commit</div>
+                <div class="subtle">Audio and video attached to the currently selected commit.</div>
+                ${
+                  mediaItems.length
+                    ? mediaItems.map((m) => renderMediaItem(m)).join("")
+                    : `<div class="emptyState">No media is attached to this commit yet.</div>`
+                }
+              </div>
+            `
+            : activeTab === "annotations"
+            ? `
+              <div class="panel">
+                <div class="h">📝 Annotations</div>
+                <div class="subtle">Review lesson annotations linked to files and lines.</div>
+                ${renderAnnotations(this.state.annotations)}
+              </div>
+            `
+            : `
+              <div class="panel">
+                <div class="h">📖 Walkthroughs</div>
+                <div class="subtle">Browse walkthroughs for the current commit and jump directly to steps.</div>
+
+                <div class="field">
+                  <div class="label">Search by title</div>
+                  <input id="walkthroughSearchTitle" type="text"
+                    placeholder="Search by title..."
+                    value="${escapeHtml(titleValue)}" />
+                </div>
+
+                <div class="field">
+                  <div class="label">Search by keyword</div>
+                  <input id="walkthroughSearchKeyword" type="text"
+                    placeholder="Search steps, descriptions, or file names..."
+                    value="${escapeHtml(keywordValue)}" />
+                </div>
+
+                <div id="stepDetail" class="stepDetail" style="display:none;"></div>
+
+                <div id="walkthroughList">
+                  ${renderWalkthroughsForCommit(
+                    this.state.walkthroughs,
+                    commits?.[commitIndex]?.hash,
+                    titleValue,
+                    keywordValue
+                  )}
+                </div>
+              </div>
+            `
+        }
       </div>
 
-      <div class="card">
-        <div class="section-title">Playback</div>
+      <div class="right">
+        <div class="panel">
+          <div class="h">🤖 LLM Assistant</div>
+          <div class="subtle">Ask about the current file, selected lines, or the selected commit.</div>
 
-        <div>
-          <div class="label">File</div>
-          <select id="fileSelect">
-            ${(files && files.length
-              ? files
-                  .map(
-                    (f) =>
-                      `<option value="${escapeHtml(f)}" ${f === activeFile ? "selected" : ""}>${escapeHtml(f)}</option>`
-                  )
-                  .join("")
-              : `<option value="">(no files found)</option>`)}
-          </select>
-        </div>
+          <div class="field">
+            <div class="label">Question</div>
+            <input id="llmPrompt" type="text" placeholder="Ask about the current code..." />
+          </div>
 
-        <div class="field">
-          <div class="label">Timeline</div>
-          <div class="muted">${commits.length ? `Commit ${commitIndex + 1} of ${commits.length}` : "No commits loaded"}</div>
-          <div class="scrubberRow">
-            <button id="commitPrev">Prev</button>
-            <input id="commitSlider" class="range" type="range" min="0" max="${Math.max(0, commits.length - 1)}" value="${Math.min(commitIndex, Math.max(0, commits.length - 1))}" ${commits.length ? "" : "disabled"} />
-            <button id="commitNext">Next</button>
+          <div class="field">
+            <div class="label">Response</div>
+            <textarea id="llmOutput" readonly>Response will appear here…</textarea>
+          </div>
+
+          <div class="stack8 mt10">
+            <button class="btn secondary" id="llmAskBtn">Ask</button>
+            <button class="btn secondary" id="llmClearBtn">Refresh</button>
           </div>
         </div>
       </div>
-
-      <div class="card">
-        <div class="section-title">Learning Tools</div>
-        <div class="tabs">
-          <button type="button" class="tab ${activeTab === "timeline" ? "active" : ""}" data-tab="timeline">Commit Playback</button>
-          <button type="button" class="tab ${activeTab === "annotations" ? "active" : ""}" data-tab="annotations">Annotations</button>
-          <button type="button" class="tab ${activeTab === "walkthroughs" ? "active" : ""}" data-tab="walkthroughs">Walkthroughs</button>
-        </div>
-        <div class="muted">Student Mode is read-only.</div>
-      </div>
     </div>
 
-    <div class="mid">
-      ${
-        activeTab === "timeline"
-          ? `
-            <div class="panel">
-              <div class="h">Commit Playback</div>
-              <div class="subtle">Open the selected file at the current point in the lesson timeline.</div>
+    <script nonce="${nonce}">
+      const vscode = acquireVsCodeApi();
 
-              <div class="commitCard">
-                ${renderCommitMeta(commits, commitIndex)}
-              </div>
+      document.getElementById("importBtn").addEventListener("click", () => vscode.postMessage({ type: "student.import" }));
+      document.getElementById("homeBtn").addEventListener("click", () => vscode.postMessage({ type: "student.backHome" }));
 
-              <div class="mt10">
-                <button class="btn secondary" id="openBtn">Open code (read-only)</button>
-                <div class="muted mt8">Opens the selected file at the selected commit.</div>
-              </div>
-            </div>
-
-            <div class="panel">
-              <div class="h">Media for This Commit</div>
-              <div class="subtle">Audio and video attached to the currently selected commit.</div>
-              ${
-                mediaItems.length
-                  ? mediaItems.map((m) => renderMediaItem(m)).join("")
-                  : `<div class="emptyState">No media is attached to this commit yet.</div>`
-              }
-            </div>
-          `
-          : activeTab === "annotations"
-          ? `
-            <div class="panel">
-              <div class="h">Annotations</div>
-              <div class="subtle">Review lesson annotations linked to files and lines.</div>
-              ${renderAnnotations(this.state.annotations)}
-            </div>
-          `
-          : `
-            <div class="panel">
-              <div class="h">Walkthroughs</div>
-              <div class="subtle">Browse walkthroughs for the current commit and jump directly to steps.</div>
-
-              <div class="field">
-                <div class="label">Search by title</div>
-                <input id="walkthroughSearchTitle" type="text"
-                  placeholder="Search by title..."
-                  value="${escapeHtml(titleValue)}" />
-              </div>
-
-              <div class="field">
-                <div class="label">Search by keyword</div>
-                <input id="walkthroughSearchKeyword" type="text"
-                  placeholder="Search steps, descriptions, or file names..."
-                  value="${escapeHtml(keywordValue)}" />
-              </div>
-
-              <div id="stepDetail" class="stepDetail" style="display:none;"></div>
-
-              <div id="walkthroughList">
-                ${renderWalkthroughsForCommit(
-                  this.state.walkthroughs,
-                  commits?.[commitIndex]?.hash,
-                  titleValue,
-                  keywordValue
-                )}
-              </div>
-            </div>
-          `
-      }
-    </div>
-
-    <div class="right">
-      <div class="panel">
-        <div class="h">LLM Assistant</div>
-        <div class="subtle">Ask about the current file, selected lines, or the selected commit.</div>
-
-        <div class="field">
-          <div class="label">Question</div>
-          <input id="llmPrompt" type="text" placeholder="Ask about the current code..." />
-        </div>
-
-        <div class="field">
-          <div class="label">Response</div>
-          <textarea id="llmOutput" readonly>Response will appear here…</textarea>
-        </div>
-
-        <div class="stack8 mt10">
-          <button class="btn secondary" id="llmAskBtn">Ask</button>
-          <button class="btn secondary" id="llmClearBtn">Refresh</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-
-    document.getElementById("importBtn").addEventListener("click", () => vscode.postMessage({ type: "student.import" }));
-    document.getElementById("homeBtn").addEventListener("click", () => vscode.postMessage({ type: "student.backHome" }));
-
-    const removeBtn = document.getElementById("removeLessonBtn");
-    if (removeBtn) removeBtn.addEventListener("click", () => {
-      const lessonId = (document.getElementById("lessonSelect") || {}).value;
-      vscode.postMessage({ type: "student.deleteLesson", lessonId });
-    });
-
-    const lessonSelect = document.getElementById("lessonSelect");
-    if (lessonSelect) lessonSelect.addEventListener("change", (e) => {
-      vscode.postMessage({ type: "student.setActiveLesson", lessonId: e.target.value });
-    });
-
-    const fileSelect = document.getElementById("fileSelect");
-    if (fileSelect) fileSelect.addEventListener("change", (e) => {
-      vscode.postMessage({ type: "student.setFile", fileRelPath: e.target.value });
-    });
-
-    const slider = document.getElementById("commitSlider");
-    if (slider) slider.addEventListener("input", (e) => {
-      vscode.postMessage({ type: "student.setCommitIndex", index: e.target.value });
-    });
-
-    const prevBtn = document.getElementById("commitPrev");
-    const nextBtn = document.getElementById("commitNext");
-    if (prevBtn && slider) prevBtn.addEventListener("click", () => {
-      const v = Math.max(0, Number(slider.value) - 1);
-      slider.value = String(v);
-      slider.dispatchEvent(new Event("input"));
-    });
-    if (nextBtn && slider) nextBtn.addEventListener("click", () => {
-      const v = Math.min(Number(slider.max), Number(slider.value) + 1);
-      slider.value = String(v);
-      slider.dispatchEvent(new Event("input"));
-    });
-
-    for (const btn of document.querySelectorAll(".tab")) {
-      btn.addEventListener("click", () => vscode.postMessage({ type: "student.setTab", tab: btn.dataset.tab }));
-    }
-
-    const openBtn = document.getElementById("openBtn");
-    if (openBtn) openBtn.addEventListener("click", () => vscode.postMessage({ type: "student.openCurrent" }));
-
-    for (const btn of document.querySelectorAll("[data-open-annotation='1']")) {
-      btn.addEventListener("click", () => {
-        vscode.postMessage({ type: "student.openAnnotation", annotationId: btn.dataset.annotationId });
+      const removeBtn = document.getElementById("removeLessonBtn");
+      if (removeBtn) removeBtn.addEventListener("click", () => {
+        const lessonId = (document.getElementById("lessonSelect") || {}).value;
+        vscode.postMessage({ type: "student.deleteLesson", lessonId });
       });
-    });
 
-    const wtTitle = document.getElementById("walkthroughSearchTitle");
-    const wtKeyword = document.getElementById("walkthroughSearchKeyword");
-    const stepDetailEl = document.getElementById("stepDetail");
+      const lessonSelect = document.getElementById("lessonSelect");
+      if (lessonSelect) lessonSelect.addEventListener("change", (e) => {
+        vscode.postMessage({ type: "student.setActiveLesson", lessonId: e.target.value });
+      });
 
-    function escapeHtml(s) {
-      return String(s ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
+      const fileSelect = document.getElementById("fileSelect");
+      if (fileSelect) fileSelect.addEventListener("change", (e) => {
+        vscode.postMessage({ type: "student.setFile", fileRelPath: e.target.value });
+      });
 
-    function getFocusableState() {
-      const active = document.activeElement;
-      const focusId = active && active.id ? active.id : null;
-      let selStart = null;
-      let selEnd = null;
-      try {
-        if (active && typeof active.selectionStart === "number") {
-          selStart = active.selectionStart;
-          selEnd = active.selectionEnd;
-        }
-      } catch {}
-      return { focusId, selStart, selEnd };
-    }
+      const slider = document.getElementById("commitSlider");
+      if (slider) slider.addEventListener("input", (e) => {
+        vscode.postMessage({ type: "student.setCommitIndex", index: e.target.value });
+      });
 
-    function renderStepDetail(step) {
-      if (!stepDetailEl) return;
-      if (!step) {
-        stepDetailEl.style.display = "none";
-        stepDetailEl.innerHTML = "";
-        return;
+      const prevBtn = document.getElementById("commitPrev");
+      const nextBtn = document.getElementById("commitNext");
+      if (prevBtn && slider) prevBtn.addEventListener("click", () => {
+        const v = Math.max(0, Number(slider.value) - 1);
+        slider.value = String(v);
+        slider.dispatchEvent(new Event("input"));
+      });
+      if (nextBtn && slider) nextBtn.addEventListener("click", () => {
+        const v = Math.min(Number(slider.max), Number(slider.value) + 1);
+        slider.value = String(v);
+        slider.dispatchEvent(new Event("input"));
+      });
+
+      for (const btn of document.querySelectorAll(".tab")) {
+        btn.addEventListener("click", () => vscode.postMessage({ type: "student.setTab", tab: btn.dataset.tab }));
       }
 
-      const text = (step.text || step.note || step.label || step.title || step.description || "").toString();
-      const fp = (step.filePath || step.file || step.path || "").toString();
-      const ln = (typeof step.line === "number" ? step.line : (typeof step.lineNumber === "number" ? step.lineNumber : null));
-      const sha = (step.commitHash || step.commit || step.sha || "").toString();
+      const openBtn = document.getElementById("openBtn");
+      if (openBtn) openBtn.addEventListener("click", () => vscode.postMessage({ type: "student.openCurrent" }));
 
-      const meta = [
-        fp,
-        ln !== null ? ("L" + ln) : "",
-        sha ? ("commit " + sha.slice(0, 8)) : "",
-      ].filter(Boolean).join(" · ");
+      for (const btn of document.querySelectorAll("[data-open-annotation='1']")) {
+        btn.addEventListener("click", () => {
+          vscode.postMessage({ type: "student.openAnnotation", annotationId: btn.dataset.annotationId });
+        });
+      });
 
-      stepDetailEl.style.display = "block";
-      stepDetailEl.innerHTML =
-        '<div style="font-weight:800;margin-bottom:4px;">Selected step</div>' +
-        (text
-          ? ('<div style="margin-bottom:6px;">' + escapeHtml(text) + '</div>')
-          : '<div class="muted" style="margin-bottom:6px;">(no step text)</div>') +
-        (meta ? ('<div class="muted">' + escapeHtml(meta) + '</div>') : "");
-    }
+      const wtTitle = document.getElementById("walkthroughSearchTitle");
+      const wtKeyword = document.getElementById("walkthroughSearchKeyword");
+      const stepDetailEl = document.getElementById("stepDetail");
 
-    try {
-      const st = vscode.getState() || {};
-      if (st.selectedStep) renderStepDetail(st.selectedStep);
-      if (st.focusId) {
-        const el = document.getElementById(st.focusId);
-        if (el) {
-          el.focus();
-          if (typeof st.selStart === "number") {
-            el.setSelectionRange(st.selStart, typeof st.selEnd === "number" ? st.selEnd : st.selStart);
+      function escapeHtml(s) {
+        return String(s ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function getFocusableState() {
+        const active = document.activeElement;
+        const focusId = active && active.id ? active.id : null;
+        let selStart = null;
+        let selEnd = null;
+        try {
+          if (active && typeof active.selectionStart === "number") {
+            selStart = active.selectionStart;
+            selEnd = active.selectionEnd;
+          }
+        } catch {}
+        return { focusId, selStart, selEnd };
+      }
+
+      function renderStepDetail(step) {
+        if (!stepDetailEl) return;
+        if (!step) {
+          stepDetailEl.style.display = "none";
+          stepDetailEl.innerHTML = "";
+          return;
+        }
+
+        const text = (step.text || step.note || step.label || step.title || step.description || "").toString();
+        const fp = (step.filePath || step.file || step.path || "").toString();
+        const ln = (typeof step.line === "number" ? step.line : (typeof step.lineNumber === "number" ? step.lineNumber : null));
+        const sha = (step.commitHash || step.commit || step.sha || "").toString();
+
+        const meta = [
+          fp,
+          ln !== null ? ("L" + ln) : "",
+          sha ? ("commit " + sha.slice(0, 8)) : "",
+        ].filter(Boolean).join(" · ");
+
+        stepDetailEl.style.display = "block";
+        stepDetailEl.innerHTML =
+          '<div style="font-weight:800;margin-bottom:4px;">Selected step</div>' +
+          (text
+            ? ('<div style="margin-bottom:6px;">' + escapeHtml(text) + '</div>')
+            : '<div class="muted" style="margin-bottom:6px;">(no step text)</div>') +
+          (meta ? ('<div class="muted">' + escapeHtml(meta) + '</div>') : "");
+      }
+
+      try {
+        const st = vscode.getState() || {};
+        if (st.selectedStep) renderStepDetail(st.selectedStep);
+        if (st.focusId) {
+          const el = document.getElementById(st.focusId);
+          if (el) {
+            el.focus();
+            if (typeof st.selStart === "number") {
+              el.setSelectionRange(st.selStart, typeof st.selEnd === "number" ? st.selEnd : st.selStart);
+            }
           }
         }
-      }
-    } catch {}
-
-    let wtTimer = null;
-
-    function sendWalkthroughSearchDebounced() {
-      if (wtTimer) clearTimeout(wtTimer);
-
-      try {
-        const prev = vscode.getState() || {};
-        const { focusId, selStart, selEnd } = getFocusableState();
-        vscode.setState({
-          ...prev,
-          walkthroughSearchTitle: wtTitle ? wtTitle.value : "",
-          walkthroughSearchKeyword: wtKeyword ? wtKeyword.value : "",
-          selectedStep: prev.selectedStep || null,
-          focusId,
-          selStart,
-          selEnd,
-        });
       } catch {}
 
-      wtTimer = setTimeout(() => {
-        vscode.postMessage({
-          type: "student.walkthrough.search",
-          title: wtTitle ? wtTitle.value : "",
-          keyword: wtKeyword ? wtKeyword.value : "",
-        });
-      }, 250);
-    }
+      let wtTimer = null;
 
-    if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
-    if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
+      function sendWalkthroughSearchDebounced() {
+        if (wtTimer) clearTimeout(wtTimer);
 
-    document.addEventListener("click", (e) => {
-      const btn = e.target.closest(".wtOpenStep");
-      if (!btn) return;
-
-      try {
-        const raw = btn.getAttribute("data-step");
-        const step = JSON.parse(raw);
-
-        renderStepDetail(step);
         try {
           const prev = vscode.getState() || {};
           const { focusId, selStart, selEnd } = getFocusableState();
           vscode.setState({
             ...prev,
-            selectedStep: step,
+            walkthroughSearchTitle: wtTitle ? wtTitle.value : "",
+            walkthroughSearchKeyword: wtKeyword ? wtKeyword.value : "",
+            selectedStep: prev.selectedStep || null,
             focusId,
             selStart,
             selEnd,
           });
         } catch {}
 
-        vscode.postMessage({ type: "student.walkthrough.openStep", step });
-      } catch (err) {
-        console.error(err);
+        wtTimer = setTimeout(() => {
+          vscode.postMessage({
+            type: "student.walkthrough.search",
+            title: wtTitle ? wtTitle.value : "",
+            keyword: wtKeyword ? wtKeyword.value : "",
+          });
+        }, 250);
       }
-    });
 
-    const askBtn = document.getElementById("llmAskBtn");
-    const promptEl = document.getElementById("llmPrompt");
-    const outputEl = document.getElementById("llmOutput");
+      if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
+      if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
 
-    if (askBtn) {
-      askBtn.addEventListener("click", () => {
-        const question = (promptEl?.value || "").trim();
-        outputEl.value = question ? "Thinking..." : "Analyzing selection...";
-        vscode.postMessage({ type: "student.llm.ask", question });
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".wtOpenStep");
+        if (!btn) return;
+
+        try {
+          const raw = btn.getAttribute("data-step");
+          const step = JSON.parse(raw);
+
+          renderStepDetail(step);
+          try {
+            const prev = vscode.getState() || {};
+            const { focusId, selStart, selEnd } = getFocusableState();
+            vscode.setState({
+              ...prev,
+              selectedStep: step,
+              focusId,
+              selStart,
+              selEnd,
+            });
+          } catch {}
+
+          vscode.postMessage({ type: "student.walkthrough.openStep", step });
+        } catch (err) {
+          console.error(err);
+        }
       });
-    }
 
-    window.addEventListener("message", (event) => {
-      const msg = event.data;
-      if (!msg) return;
+      const askBtn = document.getElementById("llmAskBtn");
+      const promptEl = document.getElementById("llmPrompt");
+      const outputEl = document.getElementById("llmOutput");
 
-      if (msg.type === "student.llm.response") outputEl.value = msg.text || "";
-      if (msg.type === "student.llm.error") outputEl.value = "Error: " + (msg.message || "Unknown error");
-    });
+      if (askBtn) {
+        askBtn.addEventListener("click", () => {
+          const question = (promptEl?.value || "").trim();
+          outputEl.value = question ? "Thinking..." : "Analyzing selection...";
+          vscode.postMessage({ type: "student.llm.ask", question });
+        });
+      }
 
-    const clearBtn = document.getElementById("llmClearBtn");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", () => {
-        if (promptEl) promptEl.value = "";
-        if (outputEl) outputEl.value = "Response will appear here…";
-        vscode.postMessage({ type: "student.llm.clear" });
+      window.addEventListener("message", (event) => {
+        const msg = event.data;
+        if (!msg) return;
+
+        if (msg.type === "student.llm.response") outputEl.value = msg.text || "";
+        if (msg.type === "student.llm.error") outputEl.value = "Error: " + (msg.message || "Unknown error");
       });
-    }
-  </script>
-</body>
-</html>`;
+
+      const clearBtn = document.getElementById("llmClearBtn");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          if (promptEl) promptEl.value = "";
+          if (outputEl) outputEl.value = "Response will appear here…";
+          vscode.postMessage({ type: "student.llm.clear" });
+        });
+      }
+    </script>
+  </body>
+  </html>`;
 
     function renderCommitMeta(commits, idx) {
       if (!commits || commits.length === 0) {
@@ -1455,7 +1495,6 @@ class StudentHomeViewProvider {
     }
   }
 }
-
 function normalizeWalkthroughs(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.map(fixWalkthrough);
