@@ -59,7 +59,7 @@
       "codetimeHome": [
         {
           "id": "codetime.homeView",
-          "name": "Home",
+          "name": "CodeTime",
           "type": "webview"
         }
       ],
@@ -75,7 +75,7 @@
       "codetimeInstructor": [
         {
           "id": "codetime.instructor.dashboard",
-          "name": "Dashboard",
+          "name": "Instructor",
           "type": "webview"
         }
       ]
