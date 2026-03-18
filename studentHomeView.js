@@ -1454,10 +1454,7 @@ alert("TTS button clicked");
     const question = (promptEl?.value || "").trim();
     outputEl.value = question ? "Thinking..." : "Analyzing selection...";
     stopSpeech();
-   setTimeout(() => {
-  outputEl.value =
-    "This is a test for the text to speech feature. The system reads explanations aloud to help students understand the content more easily.";
-}, 500);
+  vscode.postMessage({ type: "student.llm.ask", question });
   });
 }
 
