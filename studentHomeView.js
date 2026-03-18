@@ -1128,7 +1128,10 @@ select:focus {
 
 <div class="field">
   <div class="label">Speech Speed</div>
+  <div class="row" style="align-items: center; gap: 8px;">
   <input id="ttsRate" type="range" min="0.5" max="2" step="0.1" value="1" />
+  <span id="ttsRateLabel">1x</span>
+</div>
 </div>
 
 <div class="stack8 mt10">
@@ -1387,7 +1390,17 @@ select:focus {
       const ttsResumeBtn = document.getElementById("ttsResumeBtn");
       const ttsStopBtn = document.getElementById("ttsStopBtn");
       const ttsRateEl = document.getElementById("ttsRate");
-
+      const ttsRateLabel = document.getElementById("ttsRateLabel");
+      function updateRateLabel() {
+  const rate = Number(ttsRateEl?.value || 1);
+  if (ttsRateLabel) {
+    ttsRateLabel.textContent = (rate % 1 === 0 ? rate : rate.toFixed(1)) + "x";
+  }
+}
+if (ttsRateEl) {
+  ttsRateEl.addEventListener("input", updateRateLabel);
+}
+  updateRateLabel();
       function getTtsText() {
         return (outputEl?.value || "").trim();
       }
