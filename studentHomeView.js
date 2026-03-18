@@ -1139,185 +1139,245 @@ select:focus {
       </div>
     </div>
 
-    <script nonce="${nonce}">
-      const vscode = acquireVsCodeApi();
+ <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
 
-      document.getElementById("importBtn").addEventListener("click", () => vscode.postMessage({ type: "student.import" }));
-      document.getElementById("homeBtn").addEventListener("click", () => vscode.postMessage({ type: "student.backHome" }));
+    const importBtn = document.getElementById("importBtn");
+    if (importBtn) {
+      importBtn.addEventListener("click", () => {
+        vscode.postMessage({ type: "student.import" });
+      });
+    }
 
-      const removeBtn = document.getElementById("removeLessonBtn");
-      if (removeBtn) removeBtn.addEventListener("click", () => {
-        const lessonId = (document.getElementById("lessonSelect") || {}).value;
+    const homeBtn = document.getElementById("homeBtn");
+    if (homeBtn) {
+      homeBtn.addEventListener("click", () => {
+        vscode.postMessage({ type: "student.backHome" });
+      });
+    }
+
+    const removeBtn = document.getElementById("removeLessonBtn");
+    if (removeBtn) {
+      removeBtn.addEventListener("click", () => {
+        const lessonSelectEl = document.getElementById("lessonSelect");
+        const lessonId = lessonSelectEl ? lessonSelectEl.value : "";
         vscode.postMessage({ type: "student.deleteLesson", lessonId });
       });
+    }
 
-      const lessonSelect = document.getElementById("lessonSelect");
-      if (lessonSelect) lessonSelect.addEventListener("change", (e) => {
+    const lessonSelect = document.getElementById("lessonSelect");
+    if (lessonSelect) {
+      lessonSelect.addEventListener("change", (e) => {
         vscode.postMessage({ type: "student.setActiveLesson", lessonId: e.target.value });
       });
+    }
 
-      const fileSelect = document.getElementById("fileSelect");
-      if (fileSelect) fileSelect.addEventListener("change", (e) => {
+    const fileSelect = document.getElementById("fileSelect");
+    if (fileSelect) {
+      fileSelect.addEventListener("change", (e) => {
         vscode.postMessage({ type: "student.setFile", fileRelPath: e.target.value });
       });
+    }
 
-      const slider = document.getElementById("commitSlider");
-      if (slider) slider.addEventListener("input", (e) => {
+    const slider = document.getElementById("commitSlider");
+    if (slider) {
+      slider.addEventListener("input", (e) => {
         vscode.postMessage({ type: "student.setCommitIndex", index: e.target.value });
       });
+    }
 
-      const prevBtn = document.getElementById("commitPrev");
-      const nextBtn = document.getElementById("commitNext");
-      if (prevBtn && slider) prevBtn.addEventListener("click", () => {
+    const prevBtn = document.getElementById("commitPrev");
+    const nextBtn = document.getElementById("commitNext");
+
+    if (prevBtn && slider) {
+      prevBtn.addEventListener("click", () => {
         const v = Math.max(0, Number(slider.value) - 1);
         slider.value = String(v);
         slider.dispatchEvent(new Event("input"));
       });
-      if (nextBtn && slider) nextBtn.addEventListener("click", () => {
+    }
+
+    if (nextBtn && slider) {
+      nextBtn.addEventListener("click", () => {
         const v = Math.min(Number(slider.max), Number(slider.value) + 1);
         slider.value = String(v);
         slider.dispatchEvent(new Event("input"));
       });
+    }
 
-      for (const btn of document.querySelectorAll(".tab")) {
-        btn.addEventListener("click", () => vscode.postMessage({ type: "student.setTab", tab: btn.dataset.tab }));
-      }
+    for (const btn of document.querySelectorAll(".tab")) {
+      btn.addEventListener("click", () => {
+        vscode.postMessage({ type: "student.setTab", tab: btn.dataset.tab });
+      });
+    }
 
-      const openBtn = document.getElementById("openBtn");
-      if (openBtn) openBtn.addEventListener("click", () => vscode.postMessage({ type: "student.openCurrent" }));
+    const openBtn = document.getElementById("openBtn");
+    if (openBtn) {
+      openBtn.addEventListener("click", () => {
+        vscode.postMessage({ type: "student.openCurrent" });
+      });
+    }
 
-      for (const btn of document.querySelectorAll("[data-open-annotation='1']")) {
-        btn.addEventListener("click", () => {
-          vscode.postMessage({ type: "student.openAnnotation", annotationId: btn.dataset.annotationId });
+    for (const btn of document.querySelectorAll("[data-open-annotation='1']")) {
+      btn.addEventListener("click", () => {
+        vscode.postMessage({
+          type: "student.openAnnotation",
+          annotationId: btn.dataset.annotationId
         });
       });
+    }
 
-      const wtTitle = document.getElementById("walkthroughSearchTitle");
-      const wtKeyword = document.getElementById("walkthroughSearchKeyword");
-      const stepDetailEl = document.getElementById("stepDetail");
+    const wtTitle = document.getElementById("walkthroughSearchTitle");
+    const wtKeyword = document.getElementById("walkthroughSearchKeyword");
+    const stepDetailEl = document.getElementById("stepDetail");
 
-      function escapeHtml(s) {
-        return String(s ?? "")
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#039;");
-      }
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
-      function getFocusableState() {
-        const active = document.activeElement;
-        const focusId = active && active.id ? active.id : null;
-        let selStart = null;
-        let selEnd = null;
-        try {
-          if (active && typeof active.selectionStart === "number") {
-            selStart = active.selectionStart;
-            selEnd = active.selectionEnd;
-          }
-        } catch {}
-        return { focusId, selStart, selEnd };
-      }
-
-      function renderStepDetail(step) {
-        if (!stepDetailEl) return;
-        if (!step) {
-          stepDetailEl.style.display = "none";
-          stepDetailEl.innerHTML = "";
-          return;
-        }
-
-        const text = (step.text || step.note || step.label || step.title || step.description || "").toString();
-        const fp = (step.filePath || step.file || step.path || "").toString();
-        const ln = (typeof step.line === "number" ? step.line : (typeof step.lineNumber === "number" ? step.lineNumber : null));
-        const sha = (step.commitHash || step.commit || step.sha || "").toString();
-
-        const meta = [
-          fp,
-          ln !== null ? ("L" + ln) : "",
-          sha ? ("commit " + sha.slice(0, 8)) : "",
-        ].filter(Boolean).join(" · ");
-
-        stepDetailEl.style.display = "block";
-        stepDetailEl.innerHTML =
-          '<div style="font-weight:800;margin-bottom:4px;">Selected step</div>' +
-          (text
-            ? ('<div style="margin-bottom:6px;">' + escapeHtml(text) + '</div>')
-            : '<div class="muted" style="margin-bottom:6px;">(no step text)</div>') +
-          (meta ? ('<div class="muted">' + escapeHtml(meta) + '</div>') : "");
-      }
+    function getFocusableState() {
+      const active = document.activeElement;
+      const focusId = active && active.id ? active.id : null;
+      let selStart = null;
+      let selEnd = null;
 
       try {
-        const st = vscode.getState() || {};
-        if (st.selectedStep) renderStepDetail(st.selectedStep);
-        if (st.focusId) {
-          const el = document.getElementById(st.focusId);
-          if (el) {
-            el.focus();
-            if (typeof st.selStart === "number") {
-              el.setSelectionRange(st.selStart, typeof st.selEnd === "number" ? st.selEnd : st.selStart);
-            }
-          }
+        if (active && typeof active.selectionStart === "number") {
+          selStart = active.selectionStart;
+          selEnd = active.selectionEnd;
         }
       } catch {}
 
-      let wtTimer = null;
+      return { focusId, selStart, selEnd };
+    }
 
-      function sendWalkthroughSearchDebounced() {
-        if (wtTimer) clearTimeout(wtTimer);
+    function renderStepDetail(step) {
+      if (!stepDetailEl) return;
+
+      if (!step) {
+        stepDetailEl.style.display = "none";
+        stepDetailEl.innerHTML = "";
+        return;
+      }
+
+      const text = (step.text || step.note || step.label || step.title || step.description || "").toString();
+      const fp = (step.filePath || step.file || step.path || "").toString();
+      const ln =
+        typeof step.line === "number"
+          ? step.line
+          : typeof step.lineNumber === "number"
+          ? step.lineNumber
+          : null;
+      const sha = (step.commitHash || step.commit || step.sha || "").toString();
+
+      const meta = [
+        fp,
+        ln !== null ? "L" + ln : "",
+        sha ? "commit " + sha.slice(0, 8) : ""
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      stepDetailEl.style.display = "block";
+      stepDetailEl.innerHTML =
+        '<div style="font-weight:800;margin-bottom:4px;">Selected step</div>' +
+        (text
+          ? '<div style="margin-bottom:6px;">' + escapeHtml(text) + "</div>"
+          : '<div class="muted" style="margin-bottom:6px;">(no step text)</div>') +
+        (meta ? '<div class="muted">' + escapeHtml(meta) + "</div>" : "");
+    }
+
+    try {
+      const st = vscode.getState() || {};
+
+      if (st.selectedStep) {
+        renderStepDetail(st.selectedStep);
+      }
+
+      if (st.focusId) {
+        const el = document.getElementById(st.focusId);
+        if (el) {
+          el.focus();
+          if (typeof st.selStart === "number" && typeof el.setSelectionRange === "function") {
+            el.setSelectionRange(
+              st.selStart,
+              typeof st.selEnd === "number" ? st.selEnd : st.selStart
+            );
+          }
+        }
+      }
+    } catch {}
+
+    let wtTimer = null;
+
+    function sendWalkthroughSearchDebounced() {
+      if (wtTimer) clearTimeout(wtTimer);
+
+      try {
+        const prev = vscode.getState() || {};
+        const { focusId, selStart, selEnd } = getFocusableState();
+
+        vscode.setState({
+          ...prev,
+          walkthroughSearchTitle: wtTitle ? wtTitle.value : "",
+          walkthroughSearchKeyword: wtKeyword ? wtKeyword.value : "",
+          selectedStep: prev.selectedStep || null,
+          focusId,
+          selStart,
+          selEnd
+        });
+      } catch {}
+
+      wtTimer = setTimeout(() => {
+        vscode.postMessage({
+          type: "student.walkthrough.search",
+          title: wtTitle ? wtTitle.value : "",
+          keyword: wtKeyword ? wtKeyword.value : ""
+        });
+      }, 250);
+    }
+
+    if (wtTitle) {
+      wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
+    }
+
+    if (wtKeyword) {
+      wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
+    }
+
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".wtOpenStep");
+      if (!btn) return;
+
+      try {
+        const raw = btn.getAttribute("data-step");
+        const step = JSON.parse(raw);
+
+        renderStepDetail(step);
 
         try {
           const prev = vscode.getState() || {};
           const { focusId, selStart, selEnd } = getFocusableState();
+
           vscode.setState({
             ...prev,
-            walkthroughSearchTitle: wtTitle ? wtTitle.value : "",
-            walkthroughSearchKeyword: wtKeyword ? wtKeyword.value : "",
-            selectedStep: prev.selectedStep || null,
+            selectedStep: step,
             focusId,
             selStart,
-            selEnd,
+            selEnd
           });
         } catch {}
 
-        wtTimer = setTimeout(() => {
-          vscode.postMessage({
-            type: "student.walkthrough.search",
-            title: wtTitle ? wtTitle.value : "",
-            keyword: wtKeyword ? wtKeyword.value : "",
-          });
-        }, 250);
+        vscode.postMessage({ type: "student.walkthrough.openStep", step });
+      } catch (err) {
+        console.error(err);
       }
-
-      if (wtTitle) wtTitle.addEventListener("input", sendWalkthroughSearchDebounced);
-      if (wtKeyword) wtKeyword.addEventListener("input", sendWalkthroughSearchDebounced);
-
-      document.addEventListener("click", (e) => {
-        const btn = e.target.closest(".wtOpenStep");
-        if (!btn) return;
-
-        try {
-          const raw = btn.getAttribute("data-step");
-          const step = JSON.parse(raw);
-
-          renderStepDetail(step);
-          try {
-            const prev = vscode.getState() || {};
-            const { focusId, selStart, selEnd } = getFocusableState();
-            vscode.setState({
-              ...prev,
-              selectedStep: step,
-              focusId,
-              selStart,
-              selEnd,
-            });
-          } catch {}
-
-          vscode.postMessage({ type: "student.walkthrough.openStep", step });
-        } catch (err) {
-          console.error(err);
-        }
-      });
+    });
 
       const askBtn = document.getElementById("llmAskBtn");
       const promptEl = document.getElementById("llmPrompt");
@@ -1593,11 +1653,11 @@ if (clearBtn) {
 
     function escapeHtml(s) {
       return String(s ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
   }
 }
