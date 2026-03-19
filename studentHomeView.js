@@ -274,21 +274,27 @@ class StudentHomeViewProvider {
 
           case "student.llm.ask": {
             try {
+              const editor = vscode.window.activeTextEditor;
+
               const scope = {
                 lessonId: this.state.activeLessonId,
                 repoPath: this.state.repoPath,
                 allowedFiles: this.state.files,
                 commit: this.getCurrentCommit(),
                 commitMeta: this.state.commits[this.state.commitIndex],
-                activeFile: this.state.activeFile,
+                activeFile:
+                  editor?.document?.uri?.scheme === "file"
+                    ? path.basename(editor.document.fileName)
+                    : this.state.activeFile,
+                currentEditorFile: editor?.document?.uri?.fsPath || editor?.document?.fileName || null,
               };
-
+              
               let fullText = "";
               let selectionObj = null;
 
               // Try active snapshot editor first
-              const editor = vscode.window.activeTextEditor;
-              if (editor && editor.document?.uri?.scheme === "codetime-playback") {
+              
+              if (editor) {
                 fullText = editor.document.getText();
 
                 if (editor.selection && !editor.selection.isEmpty) {
@@ -315,7 +321,7 @@ class StudentHomeViewProvider {
               if (!fullText) {
                 this._view.webview.postMessage({
                   type: "student.llm.error",
-                  message: "Open the lesson snapshot first.",
+                  message: "No file content found. Open a file or select code.",
                 });
                 break;
               }
