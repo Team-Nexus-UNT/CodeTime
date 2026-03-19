@@ -920,8 +920,20 @@ class StudentHomeViewProvider {
       }
 
       code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      }
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--ct-green);
+  outline-offset: 2px;
+}
     </style>
   </head>
   <body>
@@ -1100,14 +1112,32 @@ class StudentHomeViewProvider {
           </div>
 
           <div class="field">
-            <div class="label">Response</div>
-            <textarea id="llmOutput" readonly>Response will appear here…</textarea>
-          </div>
+  <div class="label">Response</div>
+  <textarea id="llmOutput" readonly>Response will appear here…</textarea>
+</div>
 
-          <div class="stack8 mt10">
-            <button class="btn secondary" id="llmAskBtn">Ask</button>
-            <button class="btn secondary" id="llmClearBtn">Refresh</button>
-          </div>
+<div class="field">
+  <div class="label">Text-to-Speech</div>
+  <div class="row">
+    <button class="btn secondary" id="ttsPlayBtn">🔊 Read Aloud</button>
+    <button class="btn secondary" id="ttsPauseBtn">⏸ Pause</button>
+    <button class="btn secondary" id="ttsResumeBtn">▶ Resume</button>
+    <button class="btn secondary" id="ttsStopBtn">⏹ Stop</button>
+  </div>
+</div>
+
+<div class="field">
+  <div class="label">Speech Speed</div>
+  <div class="row" style="align-items: center; gap: 8px;">
+  <input id="ttsRate" type="range" min="0.5" max="2" step="0.1" value="1" />
+  <span id="ttsRateLabel">1x</span>
+</div>
+</div>
+
+<div class="stack8 mt10">
+  <button class="btn secondary" id="llmAskBtn">Ask</button>
+  <button class="btn secondary" id="llmClearBtn">Refresh</button>
+</div>
         </div>
       </div>
     </div>
@@ -1352,42 +1382,120 @@ class StudentHomeViewProvider {
       }
     });
 
-    const askBtn = document.getElementById("llmAskBtn");
-    const promptEl = document.getElementById("llmPrompt");
-    const outputEl = document.getElementById("llmOutput");
+      const askBtn = document.getElementById("llmAskBtn");
+      const promptEl = document.getElementById("llmPrompt");
+      const outputEl = document.getElementById("llmOutput");
+      const ttsPlayBtn = document.getElementById("ttsPlayBtn");
+      const ttsPauseBtn = document.getElementById("ttsPauseBtn");
+      const ttsResumeBtn = document.getElementById("ttsResumeBtn");
+      const ttsStopBtn = document.getElementById("ttsStopBtn");
+      const ttsRateEl = document.getElementById("ttsRate");
+      const ttsRateLabel = document.getElementById("ttsRateLabel");
+      function updateRateLabel() {
+  const rate = Number(ttsRateEl?.value || 1);
+  if (ttsRateLabel) {
+    ttsRateLabel.textContent = (rate % 1 === 0 ? rate : rate.toFixed(1)) + "x";
+  }
+}
+if (ttsRateEl) {
+  ttsRateEl.addEventListener("input", updateRateLabel);
+}
+  updateRateLabel();
+      function getTtsText() {
+        return (outputEl?.value || "").trim();
+      }
+
+      function speakText(text) {
+alert("TTS button clicked");
+        if (!text || text === "Response will appear here…" || text === "Thinking..." || text === "Analyzing selection...") {
+          return;
+        }
+
+        if (!("speechSynthesis" in window)) {
+          outputEl.value = "Text-to-Speech is not supported in this environment.";
+          return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = Number(ttsRateEl?.value || 1);
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function pauseSpeech() {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.pause();
+        }
+      }
+
+      function resumeSpeech() {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.resume();
+        }
+      }
+
+      function stopSpeech() {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+      }
+
+      if (ttsPlayBtn) {
+        ttsPlayBtn.addEventListener("click", () => {
+          speakText(getTtsText());
+        });
+      }
+
+      if (ttsPauseBtn) {
+        ttsPauseBtn.addEventListener("click", pauseSpeech);
+      }
+
+      if (ttsResumeBtn) {
+        ttsResumeBtn.addEventListener("click", resumeSpeech);
+      }
+
+      if (ttsStopBtn) {
+        ttsStopBtn.addEventListener("click", stopSpeech);
+      }
 
     if (askBtn) {
-      askBtn.addEventListener("click", () => {
-        const question = (promptEl?.value || "").trim();
-        if (outputEl) {
-          outputEl.value = question ? "Thinking..." : "Analyzing selection...";
-        }
-        vscode.postMessage({ type: "student.llm.ask", question });
-      });
-    }
+  askBtn.addEventListener("click", () => {
+    const question = (promptEl?.value || "").trim();
+    outputEl.value = question ? "Thinking..." : "Analyzing selection...";
+    stopSpeech();
+  vscode.postMessage({ type: "student.llm.ask", question });
+  });
+}
 
-    window.addEventListener("message", (event) => {
-      const msg = event.data;
-      if (!msg) return;
+      window.addEventListener("message", (event) => {
+  const msg = event.data;
+  if (!msg) return;
 
-      if (outputEl && msg.type === "student.llm.response") {
-        outputEl.value = msg.text || "";
-      }
+  if (msg.type === "student.llm.response") {
+    stopSpeech();
+    outputEl.value = msg.text || "";
+  }
 
-      if (outputEl && msg.type === "student.llm.error") {
-        outputEl.value = "Error: " + (msg.message || "Unknown error");
-      }
-    });
+  if (msg.type === "student.llm.error") {
+    stopSpeech();
+    outputEl.value = "Error: " + (msg.message || "Unknown error");
+  }
+});
 
-    const clearBtn = document.getElementById("llmClearBtn");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", () => {
-        if (promptEl) promptEl.value = "";
-        if (outputEl) outputEl.value = "Response will appear here…";
-        vscode.postMessage({ type: "student.llm.clear" });
-      });
-    }
-  </script>
+      const clearBtn = document.getElementById("llmClearBtn");
+if (clearBtn) {
+  clearBtn.addEventListener("click", () => {
+    if (promptEl) promptEl.value = "";
+    if (outputEl) outputEl.value = "Response will appear here…";
+    stopSpeech();
+    vscode.postMessage({ type: "student.llm.clear" });
+  });
+}
+    </script>
   </body>
   </html>`;
 
