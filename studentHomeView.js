@@ -206,7 +206,7 @@ class StudentHomeViewProvider {
 
             if (this.state.repoPath && commitToOpen && fileToOpen) {
               const lesson = this.state.lessons.find((l) => l.id === this.state.activeLessonId);
-              const key = `/student/${lesson?.id || "lesson"}/${commitToOpen}/${fileToOpen}`.replace(/\\/g, "/");
+              const key = `/student/${lesson?.id || "lesson"}/${fileToOpen}`.replace(/\\/g, "/");
               await vscode.commands.executeCommand("codetime.student.openSnapshot", {
                 userInitiated: true,
                 repoPath: this.state.repoPath,
@@ -533,7 +533,7 @@ class StudentHomeViewProvider {
 
     if (!repoPath || !commitHash || !fileRelPath) return;
 
-    const key = `/student/${lesson.id}/${commitHash}/${fileRelPath}`.replace(/\\/g, "/");
+    const key = `/student/${lesson.id}/${fileRelPath}`.replace(/\\/g, "/");
     await vscode.commands.executeCommand("codetime.student.openSnapshot", {
       userInitiated,
       repoPath,
