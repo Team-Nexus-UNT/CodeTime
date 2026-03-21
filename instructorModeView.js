@@ -73,7 +73,7 @@ function instructorHtml(webview, itemsHtml) {
     <button class="primary" id="uploadAudioBtn">Upload Audio</button>
     <button class="primary" id="uploadVideoBtn">Upload Video</button>
     <button id="addAnnotationButton">Add Annotation</button>
-    <button id="exportBtn">Export Lesson</button>
+    <button id="exportBtn">Export Lesson</button>   
   </div>
 </div>
 
@@ -170,7 +170,7 @@ async function registerInstructorMode(context) {
             await vscode.commands.executeCommand('codetime.addAnnotation');
           } else if (msg.type === 'exportLesson') {
             await vscode.commands.executeCommand('codetime.exportPackage');
-          }
+          } 
         } catch (e) {
           vscode.window.showErrorMessage('Upload/Delete failed: ' + e.message);
         }

@@ -133,6 +133,16 @@ class InstructorDashboardViewProvider {
           return;
         }
 
+        if (msg.type === 'instructor/backHome') {
+          await vscode.commands.executeCommand('codetime.backToHome');
+          return;
+        }
+
+        if (msg.type === 'instructor/goStudent') {
+          await vscode.commands.executeCommand('codetime.chooseStudent');
+          return;
+        }
+
         // timeline tab
 
         if (msg.type === 'timeline/requestCommits') {
@@ -737,6 +747,17 @@ function getDashboardHtml(webview, instructorItemsHtml) {
 <script>
   const vscode = acquireVsCodeApi();
 
+  function isTypingInInput(target) {
+    if (!target) return false;
+
+    const tag = (target.tagName || '').toLowerCase();
+    return (
+      target.isContentEditable ||
+      tag === 'input' ||
+      tag === 'textarea' ||
+      tag === 'select'
+    );
+  }
   const tabs = document.querySelectorAll('.tab');
   const sections = {
     timeline: document.getElementById('tab-timeline'),
@@ -1007,6 +1028,22 @@ function getDashboardHtml(webview, instructorItemsHtml) {
   updateInstructorEmptyState();
   requestCommits();
   vscode.postMessage({ type: 'walkthrough/requestAll' });
+
+  window.addEventListener('keydown', (event) => {
+    if (isTypingInInput(event.target)) return;
+
+    const key = String(event.key || '').toLowerCase();
+
+    if (key === 'h') {
+      event.preventDefault();
+      vscode.postMessage({ type: 'instructor/backHome' });
+    }
+
+    if (key === 's') {
+      event.preventDefault();
+      vscode.postMessage({ type: 'instructor/goStudent' });
+    }
+  });
 </script>
 
 </body>

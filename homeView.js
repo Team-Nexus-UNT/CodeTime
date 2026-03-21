@@ -122,6 +122,30 @@ class HomeViewProvider {
       font-size: 12px;
       text-align: center;
     }
+
+    .shortcutsBox{
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.04);
+      display: none;
+    }
+
+    .shortcutsBox.show{
+      display: block;
+    }
+
+    .shortcutsTitle{
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .shortcutsLine{
+      font-size: 12px;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -156,11 +180,43 @@ class HomeViewProvider {
     </div>
 
   <div class="row" style="margin-top: 10px;">
-  <button id="refreshMode" class="smallBtn">Refresh Mode</button>
+    <button id="refreshMode" class="smallBtn">Refresh Mode</button>
+    <button id="showShortcuts" class="smallBtn">⌨ Shortcuts</button>
+  </div>
+
+  <div id="shortcutsBox" class="shortcutsBox">
+    <div class="shortcutsTitle">Keyboard Shortcuts</div>
+
+    <div class="shortcutsLine"><b>Home</b></div>
+    <div class="shortcutsLine">S → Student Mode</div>
+    <div class="shortcutsLine">I → Instructor Mode</div>
+
+    <div class="shortcutsLine" style="margin-top:8px;"><b>Student Mode</b></div>
+    <div class="shortcutsLine">H → Home</div>
+    <div class="shortcutsLine">A → Annotations</div>
+    <div class="shortcutsLine">W → Walkthroughs</div>
+    <div class="shortcutsLine">T → Timeline</div>
+    <div class="shortcutsLine">J / K → Scrub timeline</div>
+
+    <div class="shortcutsLine" style="margin-top:8px;"><b>Instructor Mode</b></div>
+    <div class="shortcutsLine">H → Home</div>
+    <div class="shortcutsLine">S → Student Mode</div>
   </div>
 
   <script>
     const vscode = acquireVsCodeApi();
+
+    function isTypingInInput(target) {
+      if (!target) return false;
+
+      const tag = (target.tagName || "").toLowerCase();
+      return (
+        target.isContentEditable ||
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select"
+      );
+    }
 
     document.getElementById("student").addEventListener("click", () => {
       vscode.postMessage({ type: "student" });
@@ -174,6 +230,11 @@ class HomeViewProvider {
       vscode.postMessage({ type: "refreshMode" });
     });
 
+    document.getElementById("showShortcuts").addEventListener("click", () => {
+      const box = document.getElementById("shortcutsBox");
+      if (box) box.classList.toggle("show");
+    });
+
     window.addEventListener("message", (e) => {
       const msg = e.data;
       if (!msg) return;
@@ -182,6 +243,25 @@ class HomeViewProvider {
         if (pill) pill.textContent = msg.value || "none";
       }
     });
+
+    window.addEventListener("keydown", (event) => {
+      if (isTypingInInput(event.target)) return;
+
+      const key = String(event.key || "").toLowerCase();
+
+      if (key === "s") {
+        event.preventDefault();
+        vscode.postMessage({ type: "student" });
+        return;
+      }
+
+      if (key === "i") {
+        event.preventDefault();
+        vscode.postMessage({ type: "instructor" });
+        return;
+      }
+    });
+
   </script>
 </body>
 </html>`;

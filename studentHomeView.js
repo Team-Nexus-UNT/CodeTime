@@ -1151,6 +1151,41 @@ select:focus {
  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
 
+    function isTypingInInput(target) {
+      if (!target) return false;
+
+      const tag = (target.tagName || "").toLowerCase();
+      const editable = target.isContentEditable;
+
+      return (
+        editable ||
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select"
+      );
+    }
+
+    function getShortcutAction(key) {
+      const k = String(key || "").toLowerCase();
+
+      switch (k) {
+        case "a":
+          return "annotations";
+        case "w":
+          return "walkthroughs";
+        case "t":
+          return "timeline";
+        case "h":
+          return "home";
+        case "j":
+          return "prevCommit";
+        case "k":
+          return "nextCommit";
+        default:
+          return null;
+        }
+      }
+
     const importBtn = document.getElementById("importBtn");
     if (importBtn) {
       importBtn.addEventListener("click", () => {
@@ -1397,16 +1432,19 @@ select:focus {
       const ttsStopBtn = document.getElementById("ttsStopBtn");
       const ttsRateEl = document.getElementById("ttsRate");
       const ttsRateLabel = document.getElementById("ttsRateLabel");
+
       function updateRateLabel() {
-  const rate = Number(ttsRateEl?.value || 1);
-  if (ttsRateLabel) {
-    ttsRateLabel.textContent = (rate % 1 === 0 ? rate : rate.toFixed(1)) + "x";
-  }
-}
-if (ttsRateEl) {
-  ttsRateEl.addEventListener("input", updateRateLabel);
-}
-  updateRateLabel();
+        const rate = Number(ttsRateEl?.value || 1);
+        if (ttsRateLabel) {
+          ttsRateLabel.textContent = (rate % 1 === 0 ? rate : rate.toFixed(1)) + "x";
+        }
+      }
+      
+      if (ttsRateEl) {
+        ttsRateEl.addEventListener("input", updateRateLabel);
+      }
+
+      updateRateLabel();
       function getTtsText() {
         return (outputEl?.value || "").trim();
       }
@@ -1469,12 +1507,12 @@ alert("TTS button clicked");
       }
 
     if (askBtn) {
-  askBtn.addEventListener("click", () => {
-    const question = (promptEl?.value || "").trim();
-    outputEl.value = question ? "Thinking..." : "Analyzing selection...";
-    stopSpeech();
-  vscode.postMessage({ type: "student.llm.ask", question });
-  });
+    askBtn.addEventListener("click", () => {
+      const question = (promptEl?.value || "").trim();
+      outputEl.value = question ? "Thinking..." : "Analyzing selection...";
+      stopSpeech();
+    vscode.postMessage({ type: "student.llm.ask", question });
+    });
 }
 
       window.addEventListener("message", (event) => {
@@ -1501,6 +1539,56 @@ if (clearBtn) {
     vscode.postMessage({ type: "student.llm.clear" });
   });
 }
+    window.addEventListener("keydown", (event) => {
+  console.log("shortcut pressed:", event.key);
+
+  if (isTypingInInput(event.target)) return;
+
+  const action = getShortcutAction(event.key);
+  if (!action) return;
+
+  event.preventDefault();
+
+  switch (action) {
+    case "annotations":
+      vscode.postMessage({ type: "student.setTab", tab: "annotations" });
+      break;
+
+    case "home":
+      vscode.postMessage({ type: "student.backHome" });
+      break;
+
+    case "walkthroughs":
+    vscode.postMessage({ type: "student.setTab", tab: "walkthroughs" });
+    break;
+
+    case "timeline":
+    vscode.postMessage({ type: "student.setTab", tab: "timeline" });
+    break;
+
+    case "prevCommit": {
+      const slider = document.getElementById("commitSlider");
+      if (slider) {
+        const v = Math.max(0, Number(slider.value) - 1);
+        slider.value = String(v);
+        slider.dispatchEvent(new Event("input"));
+      }
+      break;
+    }
+
+    case "nextCommit": {
+      const slider = document.getElementById("commitSlider");
+      if (slider) {
+        const v = Math.min(Number(slider.max), Number(slider.value) + 1);
+        slider.value = String(v);
+        slider.dispatchEvent(new Event("input"));
+      }
+      break;
+    }
+  }
+});
+
+
     </script>
   </body>
   </html>`;
