@@ -161,6 +161,84 @@ async function getFileAtCommit(repoPath, commitHash, fileRelPath) {
   }
 }
 
+async function getParentCommit(repoPath, commitHash) {
+  try {
+    return runGit(repoPath, ["rev-parse", `${commitHash}^`]).trim();
+  } catch {
+    return null;
+  }
+}
+
+function parseChangedLineRangesFromPatch(diffText) {
+  const changedLines = [];
+  const removalAnchors = [];
+  const lines = String(diffText || "").split(/\r?\n/);
+
+  for (const line of lines) {
+    const match = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
+    if (!match) continue;
+
+    const start = Math.max(1, Number(match[1] || 1));
+    const count = Number(match[2] || 1);
+
+    if (count === 0) {
+      removalAnchors.push(Math.max(1, start));
+      continue;
+    }
+
+    for (let i = 0; i < count; i++) {
+      changedLines.push(start + i);
+    }
+  }
+
+  return {
+    changedLines: Array.from(new Set(changedLines)).sort((a, b) => a - b),
+    removalAnchors: Array.from(new Set(removalAnchors)).sort((a, b) => a - b),
+  };
+}
+
+async function getChangedLineRanges(repoPath, baseCommitHash, targetCommitHash, fileRelPath) {
+  const rel = normalizeToRepoRelative(repoPath, fileRelPath);
+  const currentText = await getFileAtCommit(repoPath, targetCommitHash, rel);
+  if (currentText == null) {
+    return { changedLines: [], removalAnchors: [], fileAdded: false };
+  }
+
+  if (!baseCommitHash) {
+    const totalLines = Math.max(1, String(currentText).split(/\r?\n/).length);
+    return {
+      changedLines: Array.from({ length: totalLines }, (_, i) => i + 1),
+      removalAnchors: [],
+      fileAdded: true,
+    };
+  }
+
+  const existedInBase = await fileExistsAtCommit(repoPath, baseCommitHash, rel);
+  if (!existedInBase) {
+    const totalLines = Math.max(1, String(currentText).split(/\r?\n/).length);
+    return {
+      changedLines: Array.from({ length: totalLines }, (_, i) => i + 1),
+      removalAnchors: [],
+      fileAdded: true,
+    };
+  }
+
+  const diffText = runGit(repoPath, [
+    "diff",
+    "--no-color",
+    "--unified=0",
+    baseCommitHash,
+    targetCommitHash,
+    "--",
+    rel,
+  ]);
+
+  return {
+    ...parseChangedLineRangesFromPatch(diffText),
+    fileAdded: false,
+  };
+}
+
 module.exports = {
   runGit,
   isGitRepo,
@@ -168,4 +246,6 @@ module.exports = {
   getCommitInfoForHashes,
   fileExistsAtCommit,
   getFileAtCommit,
+  getParentCommit,
+  getChangedLineRanges,
 };

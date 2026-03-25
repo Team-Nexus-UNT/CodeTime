@@ -207,10 +207,16 @@ class StudentHomeViewProvider {
             if (this.state.repoPath && commitToOpen && fileToOpen) {
               const lesson = this.state.lessons.find((l) => l.id === this.state.activeLessonId);
               const key = `/student/${lesson?.id || "lesson"}/${fileToOpen}`.replace(/\\/g, "/");
+              const compareCommitHash =
+                this.state.commitIndex > 0 && this.state.commits[this.state.commitIndex - 1]
+                  ? this.state.commits[this.state.commitIndex - 1].hash
+                  : null;
+
               await vscode.commands.executeCommand("codetime.student.openSnapshot", {
                 userInitiated: true,
                 repoPath: this.state.repoPath,
                 commitHash: commitToOpen,
+                compareCommitHash,
                 fileRelPath: fileToOpen,
                 key,
               });
@@ -523,6 +529,12 @@ class StudentHomeViewProvider {
     return c?.hash || null;
   }
 
+  getPreviousCommit() {
+    if (this.state.commitIndex <= 0) return null;
+    const prev = this.state.commits[this.state.commitIndex - 1];
+    return prev?.hash || null;
+  }
+
   async openCurrentSnapshot(userInitiated = false) {
     const lesson = this.state.lessons.find((l) => l.id === this.state.activeLessonId);
     if (!lesson) return;
@@ -538,6 +550,7 @@ class StudentHomeViewProvider {
       userInitiated,
       repoPath,
       commitHash,
+      compareCommitHash: this.getPreviousCommit(),
       fileRelPath,
       key,
     });
