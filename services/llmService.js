@@ -127,7 +127,7 @@ async function askOpenAI(messages) {
     try {
       const messages = buildMessages({ mode, question, scope, editor });
 
-      const response = await fetch("http://localhost:3000/api/llm", {
+      const response = await fetch("https://codetime-backend.onrender.com/api/llm", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
