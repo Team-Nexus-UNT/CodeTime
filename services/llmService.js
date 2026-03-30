@@ -135,7 +135,7 @@ async function askOpenAI(messages) {
         body: JSON.stringify({
           question,
           mode,
-          context: messages   // 🔥 send full structured context
+          context: messages  
         })
       });
 

@@ -17,7 +17,7 @@ const client = new OpenAI({
 
 // test route
 app.get("/", (req, res) => {
-  res.send("CodeTime backend is running ✅");
+  res.send("CodeTime backend is running");
 });
 
 // LLM route (we’ll improve this later)
@@ -29,7 +29,7 @@ app.post("/api/llm", async (req, res) => {
       console.log("Context length:", context?.length);
       const response = await client.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: context,   // ✅ use messages from extension
+        messages: context,   //use messages from extension
       });
   
       res.json({
