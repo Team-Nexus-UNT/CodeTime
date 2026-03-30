@@ -1,6 +1,8 @@
 // services/llmService.js
 // OpenAI-backed LLM helper for Student Mode 
 const https = require("https");
+const fetch = require("node-fetch");
+
 
 function clampText(text, maxChars) {
   const s = String(text ?? "");
@@ -121,9 +123,30 @@ async function askOpenAI(messages) {
   return text || "(No response text)";
 }
 
-async function askLlm({ mode, question, scope, editor }) {
-  const messages = buildMessages({ mode, question, scope, editor });
-  return await askOpenAI(messages);
-}
+  async function askLlm({ mode, question, scope, editor }) {
+    try {
+      const messages = buildMessages({ mode, question, scope, editor });
+
+      const response = await fetch("https://codetime-backend.onrender.com/api/llm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          question,
+          mode,
+          context: messages  
+        })
+      });
+
+      const data = await response.json();
+
+      return data.text;
+
+    } catch (err) {
+      console.error("LLM backend error:", err);
+      return "Error connecting to LLM backend.";
+    }
+  }
 
 module.exports = { askLlm };
