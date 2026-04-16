@@ -247,6 +247,7 @@ class StudentHomeViewProvider {
             this.state.activeFile = msg.fileRelPath || null;
             if (this.state.commitIndex >= this.state.commits.length) this.state.commitIndex = 0;
             this.render();
+            globalThis._codetimeCurrentFile = this.state.activeFile;
             await this.openCurrentSnapshot(false);
             break;
           }
@@ -258,8 +259,11 @@ class StudentHomeViewProvider {
               0,
               Math.min(idx, Math.max(0, this.state.commits.length - 1))
             );
+            globalThis._codetimeCurrentCommitHash = this.getCurrentCommit();
+            globalThis._codetimeCurrentFile = this.state.activeFile;
             this.render();
             await this.openCurrentSnapshot(false);
+            await vscode.commands.executeCommand("codetime.refreshAnnotations");
             break;
           }
 

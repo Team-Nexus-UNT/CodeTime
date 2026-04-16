@@ -36,6 +36,8 @@ async function importStudentLesson(context) {
 
   await copyFolder(lessonFolderUri, finalDest);
 
+  globalThis._codetimeStudentLessonRoot = finalDest.fsPath;
+
   return {
     id: path.basename(finalDest.fsPath),
     rootUri: finalDest,

@@ -34,14 +34,37 @@ async function getAnnotationFileUri(document) {
 }
 
 async function loadAnnotations(document) {
+  const studentLessonRoot = globalThis._codetimeStudentLessonRoot;
+
+  if (studentLessonRoot) {
+    try {
+      const lessonAnnotationsUri = vscode.Uri.file(
+        require("path").join(studentLessonRoot, "annotations.json")
+      );
+
+      const data = await vscode.workspace.fs.readFile(lessonAnnotationsUri);
+      const raw = Buffer.from(data).toString("utf8").trim();
+
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed.annotations)) return parsed.annotations;
+      }
+    } catch {
+      // fall through to workspace annotations
+    }
+  }
+
   try {
     const fileUri = await getAnnotationFileUri(document);
     const data = await vscode.workspace.fs.readFile(fileUri);
-    const raw = Buffer.from(data).toString('utf8').trim();
+    const raw = Buffer.from(data).toString("utf8").trim();
     if (!raw) return [];
+
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed;
     if (Array.isArray(parsed.annotations)) return parsed.annotations;
+
     return [];
   } catch {
     return [];
@@ -69,12 +92,22 @@ async function refreshAnnotations(editor) {
   const current = globalThis._codetimeCurrentCommitHash ?? null;
 
   // If no commit selected, display everything
-  const relevant = all.filter(a => {
-    if (a.file !== fileKey) return false;
-    if (!current) return true;
+  const activeStudentFile = String(globalThis._codetimeCurrentFile || fileKey || "").replace(/\\/g, "/");
+  const activeCommit = globalThis._codetimeCurrentCommitHash ?? current;
 
-    // Show annotations that match the currently selected commit
-    return a.commitHash === current;
+  const relevant = all.filter(a => {
+  const annFile = String(a.file || a.filePath || a.path || "").replace(/\\/g, "/");
+  const annCommit = a.commitHash || a.commit || a.sha || null;
+
+  const sameFile =
+    annFile === activeStudentFile ||
+    activeStudentFile.endsWith(annFile) ||
+    annFile.endsWith(activeStudentFile);
+
+  if (!sameFile) return false;
+  if (!activeCommit) return true;
+
+  return annCommit === activeCommit;
   });
 
 
@@ -120,7 +153,7 @@ async function addAnnotationCommand() {
   if (!text) return;
 
   const all = await loadAnnotations(document);
-  const fileKey = getFileKey(document);
+  const fileKey = globalThis._codetimeCurrentFile || getFileKey(document);
 
   all.push({
     id: Date.now() + '-' + Math.random().toString(36).slice(2),
