@@ -31,6 +31,7 @@ Students can:
 ## Core features
 
 ### Instructor Mode
+![Instructor Dashboard](https://raw.githubusercontent.com/Team-Nexus-UNT/CodeTime/main/media/demo2.JPG)
 Create lessons directly inside VS Code using:
 - Timeline playback based on commits
 - Walkthrough creation
@@ -39,6 +40,7 @@ Create lessons directly inside VS Code using:
 - Lesson export for student distribution
 
 ### Student Mode
+![Student Dashboard](https://raw.githubusercontent.com/Team-Nexus-UNT/CodeTime/main/media/demo1.JPG)
 Consume lessons in a focused read-only experience:
 - Import a lesson package
 - Navigate the commit timeline
