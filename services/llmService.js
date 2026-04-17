@@ -1,152 +1,247 @@
 // services/llmService.js
-// OpenAI-backed LLM helper for Student Mode 
-const https = require("https");
+// OpenAI-backed LLM helper for Student Mode
 const fetch = require("node-fetch");
 
-
 function clampText(text, maxChars) {
-  const s = String(text ?? "");
+  const s = String(text || "");
   if (s.length <= maxChars) return s;
-  return s.slice(0, maxChars) + `\n\n[Truncated to ${maxChars} chars]`;
+  return s.slice(0, maxChars) + "\n\n[Truncated to " + maxChars + " chars]";
 }
 
-function postJson(url, headers, bodyObj) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
+function buildNumberedCode(text) {
+  const lines = String(text || "").split(/\r?\n/);
+  return lines
+    .map(function (line, index) {
+      return String(index + 1).padStart(4, " ") + ": " + line;
+    })
+    .join("\n");
+}
 
-    const req = https.request(
-      {
-        method: "POST",
-        hostname: u.hostname,
-        path: u.pathname + (u.search || ""),
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
-      },
-      (res) => {
-        let data = "";
-        res.on("data", (c) => (data += c));
-        res.on("end", () => {
-          if (res.statusCode >= 400) {
-            return reject(new Error(`OpenAI HTTP ${res.statusCode}: ${data.slice(0, 500)}`));
-          }
-          try {
-            resolve(JSON.parse(data));
-          } catch {
-            reject(new Error("OpenAI returned non-JSON response."));
-          }
-        });
-      }
-    );
+function parseLineQuery(question) {
+  const q = String(question || "").trim();
+  if (!q) return null;
 
-    req.on("error", reject);
-    req.write(JSON.stringify(bodyObj));
-    req.end();
+  let match = q.match(/(?:lines?|line numbers?)\s+(\d+)\s*(?:-|to|through|thru)\s*(\d+)/i);
+  if (match) {
+    const start = Number(match[1]);
+    const end = Number(match[2]);
+    if (Number.isFinite(start) && Number.isFinite(end)) {
+      return {
+        startLine: Math.min(start, end),
+        endLine: Math.max(start, end)
+      };
+    }
+  }
+
+  match = q.match(/(?:line)\s+(\d+)/i);
+  if (match) {
+    const line = Number(match[1]);
+    if (Number.isFinite(line)) {
+      return { startLine: line, endLine: line };
+    }
+  }
+
+  return null;
+}
+
+function shouldDirectlyAnswerLineQuery(question) {
+  const q = String(question || "").trim().toLowerCase();
+  if (!q) return false;
+
+  const hasLineReference = /\bline\s+\d+\b|\blines\s+\d+\s*(?:-|to|through|thru)\s*\d+\b/i.test(q);
+  if (!hasLineReference) return false;
+
+  const explanationWords = [
+    "mean",
+    "means",
+    "explain",
+    "why",
+    "how",
+    "do",
+    "does",
+    "doing",
+    "purpose",
+    "used",
+    "use",
+    "work",
+    "works"
+  ];
+
+  const hasExplanationIntent = explanationWords.some(function (word) {
+    return q.indexOf(word) !== -1;
   });
+
+  if (hasExplanationIntent) {
+    return false;
+  }
+
+  return /\b(what is on|what's on|show|display|give me|tell me|contents? of)\b/i.test(q);
 }
 
-function buildMessages({ mode, question, scope, editor }) {
+function getLineSnippet(fullText, range) {
+  if (!range) return null;
+
+  const lines = String(fullText || "").split(/\r?\n/);
+  if (!lines.length) {
+    return {
+      ok: false,
+      text: "No code is loaded in the editor.",
+      totalLines: 0
+    };
+  }
+
+  if (range.startLine < 1 || range.startLine > lines.length) {
+    return {
+      ok: false,
+      text: "That line number is outside the current file. This file has " + lines.length + " lines.",
+      totalLines: lines.length
+    };
+  }
+
+  const endLine = Math.min(range.endLine, lines.length);
+  const selected = [];
+
+  for (let i = range.startLine; i <= endLine; i += 1) {
+    selected.push("Line " + i + ": " + lines[i - 1]);
+  }
+
+  return {
+    ok: true,
+    text: selected.join("\n"),
+    totalLines: lines.length,
+    startLine: range.startLine,
+    endLine: endLine
+  };
+}
+
+function buildMessages(params) {
+  const mode = params.mode;
+  const question = params.question;
+  const scope = params.scope || {};
+  const editor = params.editor || {};
+
   const allowedFiles = Array.isArray(scope.allowedFiles) ? scope.allowedFiles : [];
   const commit = scope.commit || "";
   const cmeta = scope.commitMeta || {};
   const activeFile = scope.activeFile || "";
+  const rawCodeText = String(editor.fullText || "");
+  const parsedRange = parseLineQuery(question);
+  const lineSnippet = getLineSnippet(rawCodeText, parsedRange);
 
-  const selectionBlock = editor?.selection?.text
-    ? `Selected lines ${editor.selection.startLine}-${editor.selection.endLine}:\n${editor.selection.text}`
+  const selectionBlock = editor.selection && editor.selection.text
+    ? "Selected lines " + editor.selection.startLine + "-" + editor.selection.endLine + ":\n" + editor.selection.text
     : "(No selection)";
 
-  const codeText = clampText(editor?.fullText || "", 20000);
+  const codeText = clampText(rawCodeText, 20000);
+  const numberedCode = clampText(buildNumberedCode(rawCodeText), 26000);
 
-    const commitRules =
-    mode === "commit"
-      ? `\nCOMMIT MODE RULES:\n` +
-        `- The user is asking about the CURRENT COMMIT.\n` +
-        `- Use the commit message + the visible code snapshot to explain what likely changed and why.\n` +
-        `- If the commit question cannot be answered from the commit message + code shown, reply: "Not enough information in the loaded lesson to answer that.".\n`
-      : "";
+  const commitRules = mode === "commit"
+    ? "\nCOMMIT MODE RULES:\n" +
+      "- The user is asking about the current commit.\n" +
+      "- Use the commit message and the visible code snapshot to explain what likely changed and why.\n" +
+      "- If the commit question truly cannot be answered from the lesson context, say so.\n"
+    : "";
 
-      const baseSystem =
-    `You are CodeTime's Student Mode assistant.\n` +
-    `CRITICAL RULES:\n` +
-    `- Only use the Lesson Context provided. Do NOT assume anything not explicitly shown.\n` +
-    `- Only reference files that appear in Allowed Files.\n` +
-    `- If the question needs info outside the context, reply: "Not enough information in the loaded lesson to answer that.".\n` +
-    `- Be concise but clear.\n`;
+  const lineRules = parsedRange
+    ? "\nLINE REFERENCE RULES:\n" +
+      "- The user referenced line " + parsedRange.startLine + (parsedRange.endLine !== parsedRange.startLine ? (" through line " + parsedRange.endLine) : "") + ".\n" +
+      "- If the user asks what is on that line, quote it exactly from the numbered code.\n" +
+      "- If the user asks what something on that line means or does, explain it instead of only repeating the text.\n"
+    : "";
 
-  const system = baseSystem + commitRules;
+  const system =
+    "You are CodeTime's Student Mode assistant.\n" +
+    "RULES:\n" +
+    "- Use the lesson context as the source of truth.\n" +
+    "- You may explain standard programming concepts that are visible in the current code, even if the lesson author did not explicitly define them.\n" +
+    "- For line-number questions, respect the numbered code block exactly, including blank lines.\n" +
+    "- If the user asks what code is on a line, answer with the exact line content.\n" +
+    "- If the user asks what code on a line means or does, explain the code on that line in plain language and mention the exact line when useful.\n" +
+    "- Only say 'Not enough information in the loaded lesson to answer that.' when the answer depends on missing project or lesson context.\n" +
+    "- Be concise but clear.\n" +
+    commitRules +
+    lineRules;
+
+  const lineContext = parsedRange
+    ? "\n\nLINE FOCUS:\n" + (lineSnippet ? lineSnippet.text : "Unable to resolve the requested line.")
+    : "";
 
   const context =
-    `LESSON CONTEXT (authoritative):\n` +
-    `Lesson ID: ${scope.lessonId || "(unknown)"}\n` +
-    `Timeline commit: ${commit ? commit.slice(0, 12) : "(none)"}\n` +
-    `Commit message: ${cmeta.message || ""}\n` +
-    `Author/Date: ${cmeta.author || ""} / ${cmeta.date || ""}\n` +
-    `Active file: ${activeFile || "(none)"}\n\n` +
-    `Allowed files (${allowedFiles.length}):\n` +
-    allowedFiles.slice(0, 200).map((f) => `- ${f}`).join("\n") +
-    (allowedFiles.length > 200 ? `\n- ...and ${allowedFiles.length - 200} more` : "") +
-    `\n\nIN-EDITOR CODE (current snapshot):\n` +
-    codeText +
-    `\n\nSELECTION:\n` +
-    selectionBlock;
+    "LESSON CONTEXT:\n" +
+    "Lesson ID: " + (scope.lessonId || "(unknown)") + "\n" +
+    "Timeline commit: " + (commit ? commit.slice(0, 12) : "(none)") + "\n" +
+    "Commit message: " + (cmeta.message || "") + "\n" +
+    "Author/Date: " + (cmeta.author || "") + " / " + (cmeta.date || "") + "\n" +
+    "Active file: " + (activeFile || "(none)") + "\n\n" +
+    "Allowed files (" + allowedFiles.length + "):\n" +
+    allowedFiles.slice(0, 200).map(function (f) { return "- " + f; }).join("\n") +
+    (allowedFiles.length > 200 ? "\n- ...and " + (allowedFiles.length - 200) + " more" : "") +
+    "\n\nCURRENT CODE:\n" + codeText +
+    "\n\nNUMBERED CODE:\n" + numberedCode +
+    lineContext +
+    "\n\nSELECTION:\n" + selectionBlock;
 
   const user =
-    `TASK MODE: ${mode}\n` +
-    `USER REQUEST:\n${question}\n\n` +
-    `Answer using ONLY the Lesson Context above.`;
+    "TASK MODE: " + mode + "\n" +
+    "USER REQUEST:\n" + question + "\n\n" +
+    "Answer using the lesson context and the visible code.";
 
   return [
     { role: "system", content: system },
     { role: "developer", content: context },
-    { role: "user", content: user },
+    { role: "user", content: user }
   ];
 }
 
-async function askOpenAI(messages) {
-  const apiKey = (process.env.OPENAI_API_KEY || "").trim();
-  if (!apiKey) throw new Error("Missing OPENAI_API_KEY. Set it and restart VS Code.");
+async function askLlm(params) {
+  const mode = params.mode;
+  const question = params.question;
+  const scope = params.scope;
+  const editor = params.editor;
 
-  const model = (process.env.CODETIME_OPENAI_MODEL || "gpt-4o-mini").trim();
-
-  const json = await postJson(
-    "https://api.openai.com/v1/chat/completions",
-    { Authorization: `Bearer ${apiKey}` },
-    {
-      model,
-      messages,
-      temperature: 0.2,
+  try {
+    if (shouldDirectlyAnswerLineQuery(question)) {
+      const directSnippet = getLineSnippet(editor && editor.fullText ? editor.fullText : "", parseLineQuery(question));
+      if (directSnippet && directSnippet.text) {
+        return directSnippet.text;
+      }
     }
-  );
 
-  const text = json?.choices?.[0]?.message?.content;
-  return text || "(No response text)";
-}
+    const messages = buildMessages({
+      mode: mode,
+      question: question,
+      scope: scope,
+      editor: editor
+    });
 
-  async function askLlm({ mode, question, scope, editor }) {
-    try {
-      const messages = buildMessages({ mode, question, scope, editor });
+    const response = await fetch("https://codetime-backend.onrender.com/api/llm", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        question: question,
+        mode: mode,
+        context: messages
+      })
+    });
 
-      const response = await fetch("https://codetime-backend.onrender.com/api/llm", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          question,
-          mode,
-          context: messages  
-        })
-      });
-
-      const data = await response.json();
-
-      return data.text;
-
-    } catch (err) {
-      console.error("LLM backend error:", err);
-      return "Error connecting to LLM backend.";
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error("LLM backend HTTP " + response.status + ": " + text.slice(0, 300));
     }
+
+    const data = await response.json();
+
+    if (data && typeof data.text === "string" && data.text.trim()) {
+      return data.text.trim();
+    }
+
+    return "The LLM returned an empty response.";
+  } catch (err) {
+    console.error("LLM backend error:", err);
+    return "Error connecting to LLM backend.";
   }
+}
 
 module.exports = { askLlm };
