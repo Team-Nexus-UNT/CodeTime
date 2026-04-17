@@ -2,9 +2,6 @@
 CSCE 4901.003 – Capstone Computer Science Project
 University of North Texas
 
-# Team Nexus Members
-Ethan Kilpatrick, Nur Mahi, Linal Lad, Emmitt Singh
-
 # Overview
 
 CodeTime is a Visual Studio Code extension designed to enhance how programming concepts are taught and learned. It allows instructors to record, annotate, and export guided code walkthroughs, and enables students to replay those walkthroughs in a read-only learning environment with timeline playback and AI-assisted explanations.
@@ -14,7 +11,7 @@ The core goal of CodeTime is to bridge the gap between watching code and underst
 
 CodeTime operates in two modes, both accessible through the VS Code extension:
 
-**Instructor Mode**
+# Instructor Mode
 
 Used to create instructional walkthroughs.
 
@@ -31,7 +28,7 @@ Associate recordings and annotations with exact points on the timeline
 Export the completed walkthrough into a distributable file
 
 
-**Student Mode**
+# Student Mode
 
 Used to consume instructional walkthroughs.
 
@@ -67,3 +64,10 @@ Open the project in VS Code
 Run npm install
 
 Press F5 to launch the Extension Development Host
+
+# License
+
+This project is proprietary software developed by Team Nexus.
+
+No part of this project may be used, copied, modified, or distributed
+without explicit permission from Team Nexus.
