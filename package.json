@@ -1,13 +1,30 @@
 {
   "name": "codetime",
   "displayName": "CodeTime",
-  "publisher": "codetime-dev",
+  "publisher": "team-nexus",
+  "description": "Create and replay interactive coding lessons with commit timelines, walkthroughs, annotations, media, and AI-assisted explanations inside VS Code.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.60.0"
   },
   "categories": [
+    "Education",
+    "Visualization",
     "Other"
+  ],
+  "keywords": [
+    "education",
+    "teaching",
+    "learning",
+    "timeline",
+    "git",
+    "walkthrough",
+    "annotations",
+    "lesson",
+    "student",
+    "instructor",
+    "code playback",
+    "capstone"
   ],
   "main": "./extension.js",
   "activationEvents": [
@@ -29,7 +46,6 @@
     "onCommand:codetime.importStudentLesson",
     "onCommand:codetime.openStudentMode",
     "onView:codetime.homeView",
-    "onView:codetime.student.home",
     "onView:codetime.instructor.dashboard",
     "onView:codetime.studentHomeView"
   ],
@@ -168,5 +184,11 @@
   },
   "dependencies": {
     "node-fetch": "^2.7.0"
-  }
+  },
+  "icon": "media/codetime.png",
+  "galleryBanner": {
+    "color": "#0b0f14"
+  },
+  "markdown": "github",
+  "qna": false
 }

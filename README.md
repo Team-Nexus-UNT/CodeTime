@@ -1,73 +1,83 @@
+# CodeTime
+
+CodeTime is a Visual Studio Code extension by Team Nexus that helps instructors build interactive coding lessons and lets students replay them inside VS Code.
+
+CodeTime combines source code, Git commit history, guided walkthroughs, annotations, media, and AI-assisted explanations into one learning experience.
+
 # CodeTime - Team Nexus
-CSCE 4901.003 – Capstone Computer Science Project
+CSCE 4902.003 – Capstone Software Development Project
 University of North Texas
 
-# Overview
+## What CodeTime does
 
-CodeTime is a Visual Studio Code extension designed to enhance how programming concepts are taught and learned. It allows instructors to record, annotate, and export guided code walkthroughs, and enables students to replay those walkthroughs in a read-only learning environment with timeline playback and AI-assisted explanations.
-The core goal of CodeTime is to bridge the gap between watching code and understanding code by synchronizing source files, Git commits, audio/video narration, and annotations into a single interactive timeline.
+CodeTime is designed for programming education and code demonstration.
 
-# Key Concepts
-
-CodeTime operates in two modes, both accessible through the VS Code extension:
-
-# Instructor Mode
-
-Used to create instructional walkthroughs.
-
-Instructors can:
-
-Record code timelines based on file changes and Git commits
-
-Capture audio and video narration
-
-Add inline annotations to specific lines of code
-
-Associate recordings and annotations with exact points on the timeline
-
-Export the completed walkthrough into a distributable file
-
-
-# Student Mode
-
-Used to consume instructional walkthroughs.
+With CodeTime, instructors can:
+- Build lessons from real code progression over time
+- Use commit-based timeline playback
+- Add walkthroughs and step-by-step explanations
+- Attach annotations to specific lines of code
+- Include supporting media for lesson delivery
+- Export lessons for student use
 
 Students can:
+- Import lessons into a read-only learning environment
+- Replay the code timeline commit by commit
+- Follow walkthrough steps in order
+- View annotations attached to the lesson
+- Ask the integrated AI assistant questions about the visible code
+- Learn from code evolution instead of only seeing the final result
 
-Import walkthrough files created in Instructor Mode
+## Core features
 
-Replay the code timeline step-by-step
+### Instructor Mode
+Create lessons directly inside VS Code using:
+- Timeline playback based on commits
+- Walkthrough creation
+- Inline code annotations
+- Media attachment and synchronization
+- Lesson export for student distribution
 
-View synchronized code, audio, video, and annotations
+### Student Mode
+Consume lessons in a focused read-only experience:
+- Import a lesson package
+- Navigate the commit timeline
+- Open walkthrough steps
+- Review annotations and linked lesson media
+- Ask the AI assistant for code explanations
 
-Navigate freely through the timeline (play, pause, rewind, fast-forward)
+## Why CodeTime
 
-Ask an integrated LLM assistant questions about the code at the current timeline position
+Most students only see the finished version of a program.
 
-View content in read-only mode (no editing allowed)
+CodeTime helps learners understand how code was built, how it changed over time, and why each change matters. It is especially useful for:
+- classroom demos
+- tutoring
+- capstone presentations
+- walkthrough-based instruction
+- beginner programming education
 
-# Installation & Development
-Prerequisites:
+## How to use
 
-Visual Studio Code
+1. Open CodeTime from the Activity Bar.
+2. Choose Instructor Mode or Student Mode.
+3. In Instructor Mode, create a lesson from a project timeline.
+4. Add walkthroughs, annotations, and lesson media.
+5. Export the lesson package.
+6. In Student Mode, import the lesson package and replay the lesson.
 
-Node.js
+## Requirements
 
-Git
+- Visual Studio Code
+- Git-based project history for timeline-based lessons
+- Lesson package export/import for student playback
 
-Run in Development Mode
+## Status
 
-Clone the repository
+CodeTime is a capstone project built by Team Nexus at the University of North Texas.
 
-Open the project in VS Code
+## License
 
-Run npm install
+Copyright (c) 2026 Team Nexus. All rights reserved.
 
-Press F5 to launch the Extension Development Host
-
-# License
-
-This project is proprietary software developed by Team Nexus.
-
-No part of this project may be used, copied, modified, or distributed
-without explicit permission from Team Nexus.
+This project is proprietary software. No part of this project may be used, copied, modified, or distributed without explicit permission from Team Nexus.
